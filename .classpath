@@ -34,6 +34,6 @@
 	<classpathentry combineaccessrules="false" kind="src" path="/util-util"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/user-util"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/db-impl"/>
-	<classpathentry kind="var" path="M2_REPO/xstream/xstream/1.2/xstream-1.2.jar"/>
+	<classpathentry kind="var" path="M2_REPO/com/thoughtworks/xstream/xstream/1.2.2/xstream-1.2.2.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
