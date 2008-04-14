@@ -36,5 +36,7 @@
 	<classpathentry combineaccessrules="false" kind="src" path="/db-impl"/>
 	<classpathentry kind="var" path="M2_REPO/com/thoughtworks/xstream/xstream/1.2.2/xstream-1.2.2.jar"/>
 	<classpathentry kind="var" path="M2_REPO/commons-beanutils/commons-beanutils/1.7.0/commons-beanutils-1.7.0.jar"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/site-api"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/user-api"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
