@@ -1,18 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
-	<classpathentry kind="src" path="api/src/test"/>
 	<classpathentry kind="src" path="utils/src/java"/>
 	<classpathentry kind="src" path="utils/src/test"/>
+	<classpathentry kind="src" path="api/src/test"/>
 	<classpathentry kind="src" path="api/src/java"/>
 	<classpathentry kind="src" path="impl/src/java"/>
 	<classpathentry kind="src" path="impl/src/test"/>
+	<classpathentry kind="src" path="impl/src/ddl"/>
 	<classpathentry kind="src" path="pack/src/webapp/WEB-INF"/>
-	<classpathentry kind="src" path="mocks/src/java"/>
 	<classpathentry kind="src" path="tool/src/java"/>
+	<classpathentry kind="src" path="mocks/src/java"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry kind="var" path="M2_REPO/commons-logging/commons-logging/1.1/commons-logging-1.1.jar"/>
 	<classpathentry kind="var" path="M2_REPO/org/springframework/spring/2.0.6/spring-2.0.6.jar"/>
-	<classpathentry kind="var" path="M2_REPO/org/sakaiproject/generic-dao/0.9.5-RC3/generic-dao-0.9.5-RC3.jar"/>
+	<classpathentry kind="var" path="M2_REPO/org/sakaiproject/generic-dao/0.9.5-SNAPSHOT/generic-dao-0.9.5-SNAPSHOT.jar"/>
 	<classpathentry kind="var" path="M2_REPO/junit/junit/3.8.1/junit-3.8.1.jar"/>
 	<classpathentry kind="var" path="M2_REPO/hsqldb/hsqldb/1.8.0.5/hsqldb-1.8.0.5.jar"/>
 	<classpathentry kind="var" path="M2_REPO/dom4j/dom4j/1.6.1/dom4j-1.6.1.jar"/>
