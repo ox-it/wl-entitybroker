@@ -107,7 +107,7 @@ public class TemplateParseUtil {
     * the set of parse template types (keys) which must be defined,
     * the first one to match will be used when parsing in a path
     */
-   public static String[] PARSE_TEMPLATE_KEYS = {
+   public static final String[] PARSE_TEMPLATE_KEYS = {
       TEMPLATE_EDIT,
       TEMPLATE_DELETE,
       TEMPLATE_NEW,
@@ -119,28 +119,28 @@ public class TemplateParseUtil {
    /**
     * Defines the valid chars for a replacement variable
     */
-   public static String VALID_VAR_CHARS = "[A-Za-z0-9\\\\(\\\\)\\+\\*\\.\\-_=,:;!~@%]";
+   public static final String VALID_VAR_CHARS = "[A-Za-z0-9\\\\(\\\\)\\+\\*\\.\\-_=,:;!~@%]";
    /**
     * Defines the valid chars for a parser input (e.g. entity reference)
     */
-   public static String VALID_INPUT_CHARS = "[A-Za-z0-9\\\\(\\\\)\\+\\*\\.\\-_=,:;!~@%"+SEPARATOR+"]";
+   public static final String VALID_INPUT_CHARS = "[A-Za-z0-9\\\\(\\\\)\\+\\*\\.\\-_=,:;!~@%"+SEPARATOR+"]";
    /**
     * Defines the valid chars for a template
     */
-   public static String VALID_TEMPLATE_CHARS = "[A-Za-z0-9\\\\(\\\\)\\+\\*\\.\\-_=,:;&!~@%"+SEPARATOR+"\\{\\}]";
+   public static final String VALID_TEMPLATE_CHARS = "[A-Za-z0-9\\\\(\\\\)\\+\\*\\.\\-_=,:;&!~@%"+SEPARATOR+"\\{\\}]";
    /**
     * Defines the valid template chars for an outgoing template (allows ?)
     */
-   public static String VALID_TEMPLATE_CHARS_OUTGOING = "[A-Za-z0-9\\\\(\\\\)\\+\\*\\.\\-_=,:;&!~@%"+SEPARATOR+"\\{\\}\\?]";
+   public static final String VALID_TEMPLATE_CHARS_OUTGOING = "[A-Za-z0-9\\\\(\\\\)\\+\\*\\.\\-_=,:;&!~@%"+SEPARATOR+"\\{\\}\\?]";
 
    /**
     * Stores the preloaded default templates
     */
-   public static List<Template> defaultTemplates;
+   public static final List<Template> defaultTemplates;
    /**
     * Stores the preloaded processed default templates
     */
-   public static List<PreProcessedTemplate> defaultPreprocessedTemplates;
+   public static final List<PreProcessedTemplate> defaultPreprocessedTemplates;
 
    // static initializer
    static {
@@ -291,11 +291,15 @@ public class TemplateParseUtil {
    /**
     * Find the extension from a string and return the string without the extension and the extension,
     * an extension is a period (".") followed by any number of non-periods,
-    * the original input is returned as the 0th item in the array
+    * the original input is returned as the 0th item in the array <br/>
+    * returned array contains 3 strings: <br/>
+    * 0 = the original input string <br/>
+    * 1 = the string without the extension or the original if it has none <br/>
+    * 2 = the extension OR null if there is no extension <br/>
     * 
     * @param input any string
     * @return an array with the string without the extension or the original if it has none in position 1
-    * and the extension in the position 2, position 0 holds the original input string
+    * and the extension in the position 2 (or null if no extension), position 0 holds the original input string
     */
    public static String[] findExtension(String input) {
       // regex pattern: ".*(\\.[^.]+|$)"
@@ -303,13 +307,17 @@ public class TemplateParseUtil {
       String extension = null;
       if (input != null) {
          int extensionLoc = input.lastIndexOf(PERIOD, input.length());
-         int sepLoc = input.lastIndexOf(SEPARATOR, input.length());
-         if (extensionLoc > 0 
-                 && sepLoc < extensionLoc) {
-            stripped = input.substring(0, extensionLoc);
-            if ( (input.length() - 1) > extensionLoc) {
-               extension = input.substring(extensionLoc + 1);
-            }
+         if (extensionLoc == 0) {
+             // starts with a period so no extension, do nothing
+         } else {
+             int sepLoc = input.lastIndexOf(SEPARATOR, input.length());
+             if (extensionLoc > 0 
+                     && sepLoc < extensionLoc) {
+                stripped = input.substring(0, extensionLoc);
+                if ( (input.length() - 1) > extensionLoc) {
+                   extension = input.substring(extensionLoc + 1);
+                }
+             }
          }
       }
       return new String[] {input, stripped, extension};

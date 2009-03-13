@@ -31,7 +31,7 @@ import java.util.Set;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.sakaiproject.entity.api.EntityManager;
+
 import org.sakaiproject.entitybroker.EntityBroker;
 import org.sakaiproject.entitybroker.EntityReference;
 import org.sakaiproject.entitybroker.EntityView;
@@ -41,12 +41,9 @@ import org.sakaiproject.entitybroker.entityprovider.extension.ActionReturn;
 import org.sakaiproject.entitybroker.entityprovider.extension.BrowseEntity;
 import org.sakaiproject.entitybroker.entityprovider.extension.EntityData;
 import org.sakaiproject.entitybroker.entityprovider.extension.PropertiesProvider;
+import org.sakaiproject.entitybroker.entityprovider.extension.RequestStorageWrite;
 import org.sakaiproject.entitybroker.entityprovider.search.Search;
-import org.sakaiproject.entitybroker.impl.entityprovider.extension.RequestStorageImpl;
 import org.sakaiproject.entitybroker.util.EntityResponse;
-import org.sakaiproject.event.api.Event;
-import org.sakaiproject.event.api.EventTrackingService;
-import org.sakaiproject.event.api.NotificationService;
 
 /**
  * The default implementation of the EntityBroker interface
@@ -56,11 +53,23 @@ import org.sakaiproject.event.api.NotificationService;
  */
 public class EntityBrokerImpl implements EntityBroker, PropertiesProvider {
 
-    private static Log log = LogFactory.getLog(EntityBrokerImpl.class);
+    private static final Log log = LogFactory.getLog(EntityBrokerImpl.class);
 
-    private EntityActionsManager entityActionsManager;
-    public void setEntityActionsManager(EntityActionsManager entityActionsManager) {
-        this.entityActionsManager = entityActionsManager;
+    /**
+     * Empty constructor
+     */
+    protected EntityBrokerImpl() { }
+
+    /**
+     * Minimal constructor
+     */
+    public EntityBrokerImpl(EntityProviderManager entityProviderManager,
+            EntityBrokerManagerImpl entityBrokerManager,
+            RequestStorageWrite requestStorageWrite) {
+        super();
+        this.entityProviderManager = entityProviderManager;
+        this.entityBrokerManager = entityBrokerManager;
+        this.requestStorage = requestStorageWrite;
     }
 
     private EntityProviderManager entityProviderManager;
@@ -68,21 +77,17 @@ public class EntityBrokerImpl implements EntityBroker, PropertiesProvider {
         this.entityProviderManager = entityProviderManager;
     }
 
-    private EventTrackingService eventTrackingService;
-    public void setEventTrackingService(EventTrackingService eventTrackingService) {
-        this.eventTrackingService = eventTrackingService;
-    }
-
-    private EntityEncodingManager entityEncodingManager;
-    public void setEntityEncodingManager(EntityEncodingManager entityEncodingManager) {
-        this.entityEncodingManager = entityEncodingManager;
-    }
-
-    private EntityBrokerManager entityBrokerManager;
-    public void setEntityBrokerManager(EntityBrokerManager entityBrokerManager) {
+    private EntityBrokerManagerImpl entityBrokerManager;
+    public void setEntityBrokerManager(EntityBrokerManagerImpl entityBrokerManager) {
         this.entityBrokerManager = entityBrokerManager;
     }
 
+    private RequestStorageWrite requestStorage;
+    public void setRequestStorage(RequestStorageWrite requestStorage) {
+        this.requestStorage = requestStorage;
+    }
+
+    // OPTIONAL Data Storage providers
     private EntityMetaPropertiesService entityMetaPropertiesService;
     public void setEntityMetaPropertiesService(
             EntityMetaPropertiesService entityMetaPropertiesService) {
@@ -94,23 +99,6 @@ public class EntityBrokerImpl implements EntityBroker, PropertiesProvider {
         this.entityTaggingService = entityTaggingService;
     }
 
-    private EntityHandlerImpl entityHandler;
-    public void setEntityRequestHandler(EntityHandlerImpl entityHandler) {
-        this.entityHandler = entityHandler;
-    }
-
-    private EntityManager entityManager;
-    public void setEntityManager(EntityManager entityManager) {
-        this.entityManager = entityManager;
-    }
-
-    /**
-     * Must be the implementation
-     */
-    private RequestStorageImpl requestStorage;
-    public void setRequestStorage(RequestStorageImpl requestStorage) {
-        this.requestStorage = requestStorage;
-    }
 
 
     /* (non-Javadoc)
@@ -184,24 +172,26 @@ public class EntityBrokerImpl implements EntityBroker, PropertiesProvider {
         if (reference == null || "".equals(reference)) {
             throw new IllegalArgumentException("Cannot fire event if reference is null or empty");
         }
-        String refName = reference;
-        try {
-            // parse the reference string to validate it and remove any extra bits
-            EntityReference ref = entityBrokerManager.parseReference(reference);
-            if (ref != null) {
-                refName = ref.toString();
-            } else {
-                // fallback to simple parsing
-                refName = new EntityReference(reference).toString();
+        if (entityBrokerManager.getExternalIntegrationProvider() != null) {
+            String refName = reference;
+            try {
+                // parse the reference string to validate it and remove any extra bits
+                EntityReference ref = entityBrokerManager.parseReference(reference);
+                if (ref != null) {
+                    refName = ref.toString();
+                } else {
+                    // fallback to simple parsing
+                    refName = new EntityReference(reference).toString();
+                }
+            } catch (Exception e) {
+                refName = reference;
+                log.warn("Invalid reference ("+reference+") for eventName ("+eventName+"), could not parse the reference correctly, continuing to create event with original reference");
             }
-        } catch (Exception e) {
-            refName = reference;
-            log.warn("Invalid reference ("+reference+") for eventName ("+eventName+"), could not parse the reference correctly, continuing to create event with original reference");
+            // had to take out the exists check because it makes firing events for removing entities very annoying -AZ
+            entityBrokerManager.getExternalIntegrationProvider().fireEvent(eventName, refName);
+        } else {
+            log.warn("No external system to handle events: event not fired: " + eventName + ":" + reference);
         }
-        // had to take out the exists check because it makes firing events for removing entities very annoying -AZ
-        Event event = eventTrackingService.newEvent(eventName, refName, true,
-                NotificationService.PREF_IMMEDIATE);
-        eventTrackingService.post(event);
     }
 
     /* (non-Javadoc)
@@ -209,7 +199,11 @@ public class EntityBrokerImpl implements EntityBroker, PropertiesProvider {
      */
     public EntityResponse fireEntityRequest(String reference, String viewKey, String format,
             Map<String, String> params, Object entity) {
-        return entityHandler.fireEntityRequestInternal(reference, viewKey, format, params, entity);
+        if (entityBrokerManager.getEntityRESTProvider() != null) {
+            return entityBrokerManager.getEntityRESTProvider().handleEntityRequest(reference, viewKey, format, params, entity);
+        } else {
+            throw new UnsupportedOperationException("No provider to handle fireEntityRequest for ("+reference+","+viewKey+","+format+")");
+        }
     }
 
     /* (non-Javadoc)
@@ -219,13 +213,9 @@ public class EntityBrokerImpl implements EntityBroker, PropertiesProvider {
         Object entity = null;
         EntityReference ref = entityBrokerManager.parseReference(reference);
         if (ref == null) {
-            // not handled in EB so attempt to parse out a prefix and try to get entity from the legacy system
-            try {
-                // cannot test this in a meaningful way so the tests are designed to not get here -AZ
-                entity = entityManager.newReference(reference).getEntity();
-            } catch (Exception e) {
-                log.warn("Failed to look up reference '" + reference
-                        + "' to an entity in legacy entity system", e);
+            // not handled in EB so attempt to parse out a prefix and try to get entity from the external system
+            if (entityBrokerManager.getExternalIntegrationProvider() != null) {
+                entityBrokerManager.getExternalIntegrationProvider().fetchEntity(reference);
             }
         } else {
             // this is a registered prefix
@@ -309,14 +299,18 @@ public class EntityBrokerImpl implements EntityBroker, PropertiesProvider {
         if (ref == null) {
             throw new IllegalArgumentException("Cannot output formatted entity, entity reference is invalid: " + reference);
         }
-        try {
-            requestStorage.setRequestValues(params);
-            // convert entities to entity data list
-            List<EntityData> data = entityBrokerManager.convertToEntityData(entities, ref);
-            if (params == null) { params = new HashMap<String, Object>(); }
-            entityEncodingManager.formatAndOutputEntity(ref, format, data, output, params);
-        } finally {
-            requestStorage.reset();
+        if (entityBrokerManager.getEntityRESTProvider() != null) {
+            try {
+                requestStorage.setRequestValues(params);
+                // convert entities to entity data list
+                List<EntityData> data = entityBrokerManager.convertToEntityData(entities, ref);
+                if (params == null) { params = new HashMap<String, Object>(); }
+                entityBrokerManager.getEntityRESTProvider().formatAndOutputEntity(ref, format, data, output, params);
+            } finally {
+                requestStorage.reset();
+            }
+        } else {
+            throw new UnsupportedOperationException("No provider to handle formatAndOutputEntity for ("+reference+","+format+")");
         }
     }
 
@@ -327,12 +321,16 @@ public class EntityBrokerImpl implements EntityBroker, PropertiesProvider {
             throw new IllegalArgumentException("Cannot output formatted entity, entity reference is invalid: " + reference);
         }
         Object entity = null;
-        try {
-            requestStorage.setRequestValues(params);
-            if (params == null) { params = new HashMap<String, Object>(); }
-            entity = entityEncodingManager.translateInputToEntity(ref, format, input, params);
-        } finally {
-            requestStorage.reset();
+        if (entityBrokerManager.getEntityRESTProvider() != null) {
+            try {
+                requestStorage.setRequestValues(params);
+                if (params == null) { params = new HashMap<String, Object>(); }
+                entity = entityBrokerManager.getEntityRESTProvider().translateInputToEntity(ref, format, input, params);
+            } finally {
+                requestStorage.reset();
+            }
+        } else {
+            throw new UnsupportedOperationException("No provider to handle translateInputToEntity for ("+reference+","+format+")");
         }
         return entity;
     }
@@ -348,20 +346,24 @@ public class EntityBrokerImpl implements EntityBroker, PropertiesProvider {
             throw new IllegalArgumentException("The provider for prefix ("+ref.getPrefix()+") cannot handle custom actions");
         }
         ActionReturn ar = null;
-        try {
-            requestStorage.setRequestValues(params);
-            if (params == null) { params = new HashMap<String, Object>(); }
-            ar = entityActionsManager.handleCustomActionExecution(actionProvider, ref, action, params, outputStream, null, null);
-            // populate the entity data
-            if (ar != null) {
-                if (ar.entitiesList != null) {
-                    entityBrokerManager.populateEntityData(ar.entitiesList);
-                } else if (ar.entityData != null) {
-                    entityBrokerManager.populateEntityData( new EntityData[] {ar.entityData} );
+        if (entityBrokerManager.getEntityRESTProvider() != null) {
+            try {
+                requestStorage.setRequestValues(params);
+                if (params == null) { params = new HashMap<String, Object>(); }
+                ar = entityBrokerManager.getEntityRESTProvider().handleCustomActionExecution(actionProvider, ref, action, params, outputStream, null, null);
+                // populate the entity data
+                if (ar != null) {
+                    if (ar.entitiesList != null) {
+                        entityBrokerManager.populateEntityData(ar.entitiesList);
+                    } else if (ar.entityData != null) {
+                        entityBrokerManager.populateEntityData( new EntityData[] {ar.entityData} );
+                    }
                 }
+            } finally {
+                requestStorage.reset();
             }
-        } finally {
-            requestStorage.reset();
+        } else {
+            throw new UnsupportedOperationException("No provider to handle executeCustomAction for ("+reference+","+action+")");
         }
         return ar;
     }
@@ -371,73 +373,127 @@ public class EntityBrokerImpl implements EntityBroker, PropertiesProvider {
 
     public List<String> findEntityRefs(String[] prefixes, String[] name, String[] searchValue,
             boolean exactMatch) {
-        return entityMetaPropertiesService.findEntityRefs(prefixes, name, searchValue, exactMatch);
+        if (entityMetaPropertiesService != null) {
+            return entityMetaPropertiesService.findEntityRefs(prefixes, name, searchValue, exactMatch);
+        } else {
+            log.warn("No entityMetaPropertiesService defined");
+            return new ArrayList<String>();
+        }
     }
 
     public Map<String, String> getProperties(String reference) {
-        return entityMetaPropertiesService.getProperties(reference);
+        if (entityMetaPropertiesService != null) {
+            return entityMetaPropertiesService.getProperties(reference);
+        } else {
+            log.warn("No entityMetaPropertiesService defined");
+            return new HashMap<String, String>(0);
+        }
     }
 
     public String getPropertyValue(String reference, String name) {
-        return entityMetaPropertiesService.getPropertyValue(reference, name);
+        if (entityMetaPropertiesService != null) {
+            return entityMetaPropertiesService.getPropertyValue(reference, name);
+        } else {
+            log.warn("No entityMetaPropertiesService defined");
+            return null;
+        }
     }
 
     public void setPropertyValue(String reference, String name, String value) {
-        entityMetaPropertiesService.setPropertyValue(reference, name, value);
+        if (entityMetaPropertiesService != null) {
+            entityMetaPropertiesService.setPropertyValue(reference, name, value);
+        } else {
+            log.warn("No entityMetaPropertiesService defined");
+        }
     }
 
 
     // TAGS
 
-
     public List<EntityData> findEntitesByTags(String[] tags, String[] prefixes,
             boolean matchAll, Search search, Map<String, Object> params) {
-        requestStorage.setRequestValues(params);
-        List<EntityData> results = entityTaggingService.findEntitesByTags(tags, prefixes, matchAll, search);
-        requestStorage.reset();
-        return results;
+        if (entityTaggingService != null) {
+            requestStorage.setRequestValues(params);
+            List<EntityData> results = entityTaggingService.findEntitesByTags(tags, prefixes, matchAll, search);
+            requestStorage.reset();
+            return results;
+        } else {
+            log.warn("No entityTaggingService defined");
+            return new ArrayList<EntityData>();
+        }
     }
 
     public List<String> getTagsForEntity(String reference) {
-        return entityTaggingService.getTagsForEntity(reference);
+        if (entityTaggingService != null) {
+            return entityTaggingService.getTagsForEntity(reference);
+        } else {
+            log.warn("No entityTaggingService defined");
+            return new ArrayList<String>();
+        }
     }
 
     public void removeTagsFromEntity(String reference, String[] tags) {
-        entityTaggingService.removeTagsFromEntity(reference, tags);
+        if (entityTaggingService != null) {
+            entityTaggingService.removeTagsFromEntity(reference, tags);
+        } else {
+            log.warn("No entityTaggingService defined");
+        }
     }
 
     public void addTagsToEntity(String reference, String[] tags) {
-        entityTaggingService.addTagsToEntity(reference, tags);
+        if (entityTaggingService != null) {
+            entityTaggingService.addTagsToEntity(reference, tags);
+        } else {
+            log.warn("No entityTaggingService defined");
+        }
     }
 
     public void setTagsForEntity(String reference, String[] tags) {
-        entityTaggingService.setTagsForEntity(reference, tags);
+        if (entityTaggingService != null) {
+            entityTaggingService.setTagsForEntity(reference, tags);
+        } else {
+            log.warn("No entityTaggingService defined");
+        }
     }
 
     /**
      * @deprecated use {@link #getTagsForEntity(String)}
      */
     public Set<String> getTags(String reference) {
-        return new HashSet<String>( entityTaggingService.getTagsForEntity(reference) );
+        if (entityTaggingService != null) {
+            return new HashSet<String>( entityTaggingService.getTagsForEntity(reference) );
+        } else {
+            log.warn("No entityTaggingService defined");
+            return new HashSet<String>();
+        }
     }
 
     /**
      * @deprecated use {@link #setTagsForEntity(String, String[])}
      */
     public void setTags(String reference, String[] tags) {
-        entityTaggingService.setTagsForEntity(reference, tags);
+        if (entityTaggingService != null) {
+            entityTaggingService.setTagsForEntity(reference, tags);
+        } else {
+            log.warn("No entityTaggingService defined");
+        }
     }
 
     /**
      * @deprecated use {@link #findEntitesByTags(String[], String[], boolean, Search)}
      */
     public List<String> findEntityRefsByTags(String[] tags) {
-        ArrayList<String> refs = new ArrayList<String>();
-        List<EntityData> results = entityTaggingService.findEntitesByTags(tags, null, false, null);
-        for (EntityData entitySearchResult : results) {
-            refs.add( entitySearchResult.getEntityReference() );
+        if (entityTaggingService != null) {
+            ArrayList<String> refs = new ArrayList<String>();
+            List<EntityData> results = entityTaggingService.findEntitesByTags(tags, null, false, null);
+            for (EntityData entitySearchResult : results) {
+                refs.add( entitySearchResult.getEntityReference() );
+            }
+            return refs;
+        } else {
+            log.warn("No entityTaggingService defined");
+            return new ArrayList<String>();
         }
-        return refs;
     }
 
 }

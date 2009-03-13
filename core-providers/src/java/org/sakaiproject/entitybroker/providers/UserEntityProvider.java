@@ -25,6 +25,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.azeckoski.reflectutils.FieldUtils;
 import org.azeckoski.reflectutils.ReflectUtils;
 import org.sakaiproject.entity.api.ResourcePropertiesEdit;
@@ -54,6 +56,7 @@ import org.sakaiproject.user.api.UserPermissionException;
  * @author Aaron Zeckoski (azeckoski @ gmail.com)
  */
 public class UserEntityProvider extends AbstractEntityProvider implements CoreEntityProvider, RESTful, Describeable {
+    private static Log log = LogFactory.getLog(UserEntityProvider.class);
 
     private UserDirectoryService userDirectoryService;
     public void setUserDirectoryService(UserDirectoryService userDirectoryService) {
@@ -67,12 +70,7 @@ public class UserEntityProvider extends AbstractEntityProvider implements CoreEn
 
     @EntityCustomAction(action="current",viewKey=EntityView.VIEW_LIST)
     public EntityUser getCurrentUser(EntityView view) {
-        String currentUserId = developerHelperService.getCurrentUserId();
-        if (currentUserId == null) {
-            throw new IllegalArgumentException("There is no current user to get user info about");
-        }
-        User user = getUserByIdEid(currentUserId);
-        EntityUser eu = new EntityUser(user);
+        EntityUser eu = new EntityUser(userDirectoryService.getCurrentUser());
         return eu;
     }
 
@@ -260,7 +258,12 @@ public class UserEntityProvider extends AbstractEntityProvider implements CoreEn
         return eu;         
     }
 
-    @SuppressWarnings("unchecked")
+    /**
+     * WARNING: The search results may be drawn from different populations depending on the
+     * search parameters specified. A straight listing with no filtering, or a search on "search"
+     * or "criteria", will only retrieve matches from the Sakai-maintained user records. A search
+     * on "email" may also check the records maintained by the user directory provider.
+     */
     public List<?> getEntities(EntityReference ref, Search search) {
         Collection<User> users = new ArrayList<User>();
         if (developerHelperService.getConfigurationSetting("entity.users.viewall", false)) {
@@ -385,6 +388,8 @@ public class UserEntityProvider extends AbstractEntityProvider implements CoreEn
         String userId = null;
         // can use the efficient methods to check if the user Id is valid
         if (currentUserId == null) {
+            if (log.isDebugEnabled()) log.debug("currentUserId is null, currentUserEid=" + currentUserEid, new Exception());
+
             // try to get userId from eid
             if (currentUserEid.startsWith("/user/")) {
                 // assume the form of "/user/userId" (the UDS method is protected)
@@ -444,6 +449,39 @@ public class UserEntityProvider extends AbstractEntityProvider implements CoreEn
             }
         }
         return userId;
+    }
+    
+    /**
+     * @param userSearchValue either a user ID, a user EID, or a user email address
+     * @return the first matching user, or null if no search method worked
+     */
+    public EntityUser findUserFromSearchValue(String userSearchValue) {
+        EntityUser entityUser;
+        User user;
+        try {
+            user = userDirectoryService.getUser(userSearchValue);
+        } catch (UserNotDefinedException e) {
+            try {
+                user = userDirectoryService.getUserByEid(userSearchValue);
+            } catch (UserNotDefinedException e1) {
+                user = null;
+            }
+        }
+        if (user == null) {
+            Collection<User> users = userDirectoryService.findUsersByEmail(userSearchValue);
+            if ((users != null) && (users.size() > 0)) {
+                user = users.iterator().next();
+                if (users.size() > 1) {
+                    if (log.isWarnEnabled()) log.warn("Found multiple users with email " + userSearchValue);
+                }
+            }
+        }
+        if (user != null) {
+            entityUser = convertUser(user);
+        } else {
+            entityUser = null;
+        }
+        return entityUser;
     }
 
     public EntityUser convertUser(User user) {

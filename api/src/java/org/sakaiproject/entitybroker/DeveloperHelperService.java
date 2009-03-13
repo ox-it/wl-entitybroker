@@ -27,6 +27,7 @@ import java.util.Set;
 
 import org.sakaiproject.entitybroker.entityprovider.CoreEntityProvider;
 import org.sakaiproject.entitybroker.entityprovider.EntityProvider;
+import org.sakaiproject.entitybroker.entityprovider.capabilities.Describeable;
 import org.sakaiproject.entitybroker.entityprovider.capabilities.RequestStorable;
 import org.sakaiproject.entitybroker.entityprovider.capabilities.Resolvable;
 import org.sakaiproject.entitybroker.entityprovider.extension.Formats;
@@ -105,6 +106,15 @@ public interface DeveloperHelperService {
     public Object fetchEntity(String reference);
 
 
+    /**
+     * Gets messages from the entity message bundles (the entities which implement {@link Describeable} or a sub interface),
+     * 
+     * @param prefix the string which represents a type of entity handled by an entity provider
+     * @param messageKey the message bundle property key
+     * @return the property value string OR null if none found
+     */
+    String getMessage(String prefix, String messageKey);
+
     // CONFIG
 
     /**
@@ -151,7 +161,7 @@ public interface DeveloperHelperService {
      * of the current user if there is one,
      * this is not equivalent to the current user id
      * 
-     * @return the user entity reference (e.g. /user/{userId} - not id, eid, or username) or null if none
+     * @return the user entity reference (e.g. /user/{userId} - not id, eid, or username) OR null if none
      */
     public String getCurrentUserReference();
 
@@ -162,7 +172,7 @@ public interface DeveloperHelperService {
      * <br/>
      * recommend you use {@link #getCurrentUserReference()} instead
      * 
-     * @return the user id or null if there is no current user
+     * @return the user id OR null if there is no current user
      */
     public String getCurrentUserId();
 
@@ -175,7 +185,8 @@ public interface DeveloperHelperService {
     public String getUserIdFromRef(String userReference);
 
     /**
-     * Translate the userId into a user entity reference
+     * Translate the userId into a user entity reference,
+     * (may or may not validate the userId first)
      * 
      * @param userId the internal user Id (not the eid or username)
      * @return the user entity reference (e.g. /user/{userId})
@@ -186,7 +197,7 @@ public interface DeveloperHelperService {
      * Translate the user EID (username/loginname typicaly) into a user reference
      * 
      * @param userEid the external user Id (probably the loginname or username)
-     * @return the user entity reference (e.g. /user/{userId})
+     * @return the user entity reference (e.g. /user/{userId}) OR null if the eid is invalid
      */
     public String getUserRefFromUserEid(String userEid);
 
@@ -507,6 +518,5 @@ public interface DeveloperHelperService {
      * @throws IllegalArgumentException if the data cannot be decoded because there is no decoder for that format
      */
     public Map<String, Object> decodeData(String data, String format);
-    
 
 }

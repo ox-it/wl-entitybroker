@@ -35,12 +35,14 @@ import java.util.Map.Entry;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-
+import org.azeckoski.reflectutils.ReflectUtils;
+import org.azeckoski.reflectutils.refmap.ReferenceMap;
+import org.azeckoski.reflectutils.refmap.ReferenceType;
 import org.sakaiproject.entitybroker.EntityReference;
-import org.sakaiproject.entitybroker.EntityRequestHandler;
 import org.sakaiproject.entitybroker.entityprovider.CoreEntityProvider;
 import org.sakaiproject.entitybroker.entityprovider.EntityProvider;
 import org.sakaiproject.entitybroker.entityprovider.EntityProviderManager;
+import org.sakaiproject.entitybroker.entityprovider.EntityProviderMethodStore;
 import org.sakaiproject.entitybroker.entityprovider.capabilities.ActionsDefineable;
 import org.sakaiproject.entitybroker.entityprovider.capabilities.ActionsExecutable;
 import org.sakaiproject.entitybroker.entityprovider.capabilities.ActionsExecutionControllable;
@@ -53,15 +55,12 @@ import org.sakaiproject.entitybroker.entityprovider.capabilities.RequestAware;
 import org.sakaiproject.entitybroker.entityprovider.capabilities.RequestStorable;
 import org.sakaiproject.entitybroker.entityprovider.extension.CustomAction;
 import org.sakaiproject.entitybroker.entityprovider.extension.EntityProviderListener;
-import org.sakaiproject.entitybroker.entityprovider.extension.RequestGetter;
-import org.sakaiproject.entitybroker.entityprovider.extension.RequestStorage;
-import org.sakaiproject.entitybroker.impl.EntityActionsManager;
-import org.sakaiproject.entitybroker.impl.EntityRedirectsManager;
-import org.sakaiproject.entitybroker.impl.util.URLRedirect;
-
-import org.azeckoski.reflectutils.ReflectUtils;
-import org.azeckoski.reflectutils.refmap.ReferenceMap;
-import org.azeckoski.reflectutils.refmap.ReferenceType;
+import org.sakaiproject.entitybroker.entityprovider.extension.RequestGetterWrite;
+import org.sakaiproject.entitybroker.entityprovider.extension.RequestStorageWrite;
+import org.sakaiproject.entitybroker.entityprovider.extension.URLRedirect;
+import org.sakaiproject.entitybroker.providers.EntityPropertiesService;
+import org.sakaiproject.entitybroker.providers.EntityRequestHandler;
+import org.sakaiproject.entitybroker.util.core.EntityProviderMethodStoreImpl;
 
 /**
  * Base implementation of the entity provider manager
@@ -73,30 +72,32 @@ public class EntityProviderManagerImpl implements EntityProviderManager {
 
     private static Log log = LogFactory.getLog(EntityProviderManagerImpl.class);
 
-    private RequestStorage requestStorage;
-    public void setRequestStorage(RequestStorage requestStorage) {
+    /**
+     * Empty constructor
+     */
+    protected EntityProviderManagerImpl() { }
+
+    /**
+     * Base constructor
+     * @param requestStorage the request storage service (writeable)
+     * @param requestGetter the request getter service
+     * @param entityProperties the entity properties service
+     * @param entityProviderMethodStore the provider method storage
+     */
+    public EntityProviderManagerImpl(RequestStorageWrite requestStorage, RequestGetterWrite requestGetter,
+            EntityPropertiesService entityProperties, EntityProviderMethodStore entityProviderMethodStore) {
+        super();
         this.requestStorage = requestStorage;
-    }
-
-    private RequestGetter requestGetter;
-    public void setRequestGetter(RequestGetter requestGetter) {
         this.requestGetter = requestGetter;
-    }
-
-    private EntityPropertiesService entityProperties;
-    public void setEntityProperties(EntityPropertiesService entityProperties) {
         this.entityProperties = entityProperties;
+        this.entityProviderMethodStore = entityProviderMethodStore;
+        init();
     }
 
-    private EntityActionsManager entityActionsManager;
-    public void setEntityActionsManager(EntityActionsManager entityActionsManager) {
-        this.entityActionsManager = entityActionsManager;
-    }
-
-    private EntityRedirectsManager entityRedirectsManager;
-    public void setEntityRedirectsManager(EntityRedirectsManager entityRedirectsManager) {
-        this.entityRedirectsManager = entityRedirectsManager;
-    }
+    private RequestStorageWrite requestStorage;
+    private RequestGetterWrite requestGetter;
+    private EntityPropertiesService entityProperties;
+    private EntityProviderMethodStore entityProviderMethodStore;
 
     protected ReferenceMap<String, EntityProvider> prefixMap = new ReferenceMap<String, EntityProvider>(ReferenceType.STRONG, ReferenceType.SOFT);
 
@@ -110,17 +111,18 @@ public class EntityProviderManagerImpl implements EntityProviderManager {
 
     public void init() {
         log.info("init");
-        // register the describe prefix to reserve it and load up the describe properties
+        // register the describe and batch prefixes to reserve them
         registerEntityProvider(
-                new DescribePropertiesable() {
+                new EntityProvider() {
                     public String getEntityPrefix() {
                         return EntityRequestHandler.DESCRIBE;
                     }
-                    public String getBaseName() {
-                        return getEntityPrefix();
-                    }
-                    public ClassLoader getResourceClassLoader() {
-                        return EntityProviderManagerImpl.class.getClassLoader();
+                }
+        );
+        registerEntityProvider(
+                new EntityProvider() {
+                    public String getEntityPrefix() {
+                        return EntityRequestHandler.BATCH;
                     }
                 }
         );
@@ -171,7 +173,14 @@ public class EntityProviderManagerImpl implements EntityProviderManager {
         for (String bikey : prefixMap.keySet()) {
             String curPrefix = EntityProviderManagerImpl.getPrefix(bikey);
             if (curPrefix.equals(prefix)) {
-                caps.add( getCapability(bikey) );
+                try {
+                    Class<? extends EntityProvider> capability = getCapability(bikey);
+                    caps.add( capability );
+                } catch (RuntimeException e) {
+                    // added because there will be times where we cannot resolve capabilities 
+                    // because of shifting ClassLoaders or CL visibility and that should not cause this to die
+                    log.warn("getPrefixCapabilities: Unable to retrieve class for capability bikey ("+bikey+"), skipping this capability");
+                }
             }
         }
         Collections.sort(caps, new ClassComparator());
@@ -190,7 +199,14 @@ public class EntityProviderManagerImpl implements EntityProviderManager {
             if (! m.containsKey(prefix)) {
                 m.put(prefix, new ArrayList<Class<? extends EntityProvider>>());
             }
-            m.get(prefix).add( getCapability(bikey) );
+            try {
+                Class<? extends EntityProvider> capability = getCapability(bikey);
+                m.get(prefix).add( capability );
+            } catch (RuntimeException e) {
+                // added because there will be times where we cannot resolve capabilities 
+                // because of shifting ClassLoaders or CL visibility and that should not cause this to die
+                log.warn("getRegisteredEntityCapabilities: Unable to retrieve class for capability bikey ("+bikey+"), skipping this capability");
+            }
         }      
         return m;
     }
@@ -267,11 +283,11 @@ public class EntityProviderManagerImpl implements EntityProviderManager {
                     }
                     if (!superclasses.contains(ActionsExecutionControllable.class)) {
                         // do the actions defineable validation check
-                        EntityActionsManager.validateCustomActionMethods((ActionsDefineable)entityProvider);
+                        EntityProviderMethodStoreImpl.validateCustomActionMethods((ActionsDefineable)entityProvider);
                     }
                 } else {
                     // auto detect the custom actions
-                    customActions = entityActionsManager.findCustomActions(entityProvider, true);
+                    customActions = entityProviderMethodStore.findCustomActions(entityProvider, true);
                 }
                 // register the actions
                 Map<String,CustomAction> actions = new HashMap<String, CustomAction>();
@@ -283,7 +299,7 @@ public class EntityProviderManagerImpl implements EntityProviderManager {
                     }
                     actions.put(action, customAction);
                 }
-                entityActionsManager.setCustomActions(prefix, actions);
+                entityProviderMethodStore.setCustomActions(prefix, actions);
             } else if (superclazz.equals(Describeable.class)) {
                 // need to load up the default properties into the cache
                 if (! superclasses.contains(DescribePropertiesable.class)) {
@@ -297,14 +313,14 @@ public class EntityProviderManagerImpl implements EntityProviderManager {
                 String baseName = ((DescribePropertiesable)entityProvider).getBaseName();
                 entityProperties.loadProperties(prefix, baseName, cl);
             } else if (superclazz.equals(Redirectable.class)) {
-                URLRedirect[] redirects = entityRedirectsManager.findURLRedirectMethods(entityProvider);
-                entityRedirectsManager.addURLRedirects(prefix, redirects);
+                URLRedirect[] redirects = entityProviderMethodStore.findURLRedirectMethods(entityProvider);
+                entityProviderMethodStore.addURLRedirects(prefix, redirects);
             } else if (superclazz.equals(RedirectDefinable.class)) {
-                URLRedirect[] redirects = EntityRedirectsManager.validateDefineableTemplates((RedirectDefinable)entityProvider);
-                entityRedirectsManager.addURLRedirects(prefix, redirects);
+                URLRedirect[] redirects = EntityProviderMethodStoreImpl.validateDefineableTemplates((RedirectDefinable)entityProvider);
+                entityProviderMethodStore.addURLRedirects(prefix, redirects);
             } else if (superclazz.equals(RedirectControllable.class)) {
-                URLRedirect[] redirects = EntityRedirectsManager.validateControllableTemplates((RedirectControllable)entityProvider);
-                entityRedirectsManager.addURLRedirects(prefix, redirects);
+                URLRedirect[] redirects = EntityProviderMethodStoreImpl.validateControllableTemplates((RedirectControllable)entityProvider);
+                entityProviderMethodStore.addURLRedirects(prefix, redirects);
             }
         }
         log.info("EntityBroker: Registered entity provider ("+entityProvider.getClass().getName()
@@ -369,13 +385,13 @@ public class EntityProviderManagerImpl implements EntityProviderManager {
         // do any cleanup that needs to be done when unregistering
         if (ActionsExecutable.class.equals(capability)) {
             // clean up the list of custom actions
-            entityActionsManager.removeCustomActions(prefix);
+            entityProviderMethodStore.removeCustomActions(prefix);
         } else if (Describeable.class.isAssignableFrom(capability)) {
             // clean up properties record
             entityProperties.unloadProperties(prefix);
         } else if (Redirectable.class.isAssignableFrom(capability)) {
             // clean up the redirect URLs record
-            entityRedirectsManager.removeURLRedirects(prefix);
+            entityProviderMethodStore.removeURLRedirects(prefix);
         }
         log.info("EntityBroker: Unregistered entity provider capability ("+capability.getName()+") for prefix ("+prefix+")");
     }
@@ -544,7 +560,11 @@ public class EntityProviderManagerImpl implements EntityProviderManager {
         try {
             c = Class.forName(className);
         } catch (ClassNotFoundException e) {
-            throw new RuntimeException("Could not get Class from classname: " + className);
+            try {
+                c = Class.forName(className, true, Thread.currentThread().getContextClassLoader());
+            } catch (ClassNotFoundException e1) {
+                throw new RuntimeException("Could not get Class from classname: " + className, e);
+            }
         }
         return (Class<? extends EntityProvider>) c;
     }
@@ -570,18 +590,65 @@ public class EntityProviderManagerImpl implements EntityProviderManager {
         return new ArrayList<Class<? extends EntityProvider>>(capabilities);
     }
 
-    public class EntityProviderComparator implements Comparator<EntityProvider>, Serializable {
+    public static class EntityProviderComparator implements Comparator<EntityProvider>, Serializable {
         public final static long serialVersionUID = 1l;
         public int compare(EntityProvider o1, EntityProvider o2) {
             return o1.getEntityPrefix().compareTo(o2.getEntityPrefix());
         }
     }
 
-    public class ClassComparator implements Comparator<Class<?>>, Serializable {
+    public static class ClassComparator implements Comparator<Class<?>>, Serializable {
         public final static long serialVersionUID = 1l;
         public int compare(Class<?> o1, Class<?> o2) {
             return o1.getName().compareTo(o2.getName());
         }
+    }
+
+
+    // GETTERS and SETTERS
+
+    /* (non-Javadoc)
+     * @see org.sakaiproject.entitybroker.entityprovider.EntityProviderManager#getRequestStorage()
+     */
+    public RequestStorageWrite getRequestStorage() {
+        return requestStorage;
+    }
+
+    public void setRequestStorage(RequestStorageWrite requestStorage) {
+        this.requestStorage = requestStorage;
+    }
+
+    /* (non-Javadoc)
+     * @see org.sakaiproject.entitybroker.entityprovider.EntityProviderManager#getRequestGetter()
+     */
+    public RequestGetterWrite getRequestGetter() {
+        return requestGetter;
+    }
+
+    public void setRequestGetter(RequestGetterWrite requestGetter) {
+        this.requestGetter = requestGetter;
+    }
+
+    /* (non-Javadoc)
+     * @see org.sakaiproject.entitybroker.entityprovider.EntityProviderManager#getEntityProperties()
+     */
+    public EntityPropertiesService getEntityProperties() {
+        return entityProperties;
+    }
+
+    public void setEntityProperties(EntityPropertiesService entityProperties) {
+        this.entityProperties = entityProperties;
+    }
+
+    /* (non-Javadoc)
+     * @see org.sakaiproject.entitybroker.entityprovider.EntityProviderManager#getEntityProviderMethodStore()
+     */
+    public EntityProviderMethodStore getEntityProviderMethodStore() {
+        return entityProviderMethodStore;
+    }
+
+    public void setEntityProviderMethodStore(EntityProviderMethodStore entityProviderMethodStore) {
+        this.entityProviderMethodStore = entityProviderMethodStore;
     }
 
 }

@@ -25,9 +25,11 @@ import java.util.List;
 import java.util.Map;
 
 import org.azeckoski.reflectutils.ReflectUtils;
+import org.sakaiproject.authz.api.RoleAlreadyDefinedException;
 import org.sakaiproject.entity.api.ResourcePropertiesEdit;
 import org.sakaiproject.entitybroker.EntityReference;
 import org.sakaiproject.entitybroker.EntityView;
+import org.sakaiproject.entitybroker.EntityView.Method;
 import org.sakaiproject.entitybroker.entityprovider.CoreEntityProvider;
 import org.sakaiproject.entitybroker.entityprovider.annotations.EntityCustomAction;
 import org.sakaiproject.entitybroker.entityprovider.annotations.EntityURLRedirect;
@@ -83,6 +85,34 @@ public class SiteEntityProvider extends AbstractEntityProvider implements CoreEn
         String siteId = view.getEntityReference().getId();
         boolean exists = entityExists(siteId);
         return exists;
+    }
+    
+    @EntityCustomAction(action="role", viewKey="")
+    public void handleRoles (EntityView view){
+    	String siteId = view.getEntityReference().getId();
+    	String roleId = view.getPathSegment(3);
+    	if (roleId == null){
+    		throw new IllegalArgumentException("No role id specified");
+    	}
+    	Site site = getSiteById(siteId);
+    	if (view.getMethod().equals(Method.POST.name())){
+	    	try {
+				site.addRole(roleId);
+			} catch (RoleAlreadyDefinedException e) {
+				// Ignore
+			} 
+    	} else if (view.getMethod().equals(Method.DELETE.name())) {
+    		site.removeRole(roleId);
+    	} else {
+    		throw new IllegalArgumentException("Method " + view.getMethod() + " not supported");
+    	}
+    	try {
+			siteService.save(site);
+		} catch (IdUnusedException e) {
+			// Ignore
+		} catch (PermissionException e) {
+			throw new SecurityException("User not allowed to update role " + roleId + " in site " + siteId);
+		}
     }
 
     /**
@@ -182,15 +212,6 @@ public class SiteEntityProvider extends AbstractEntityProvider implements CoreEn
                         throw new IllegalArgumentException("Invalid userId supplied for owner of site: " + site.getOwner());
                     }
                     ReflectUtils.getInstance().setFieldValue(s, "m_createdUserId", ownerUserId);
-                }
-                // attempt to set the maintainer as requested
-                String maintUserId = site.getMaintainerUserId();
-                if (maintUserId != null) {
-                    maintUserId = userEntityProvider.findAndCheckUserId(maintUserId, null);
-                    if (maintUserId == null) {
-                        throw new IllegalArgumentException("Invalid userId supplied for initial maintainer of site: " + site.getMaintainerUserId());
-                    }
-                    s.addMember(maintUserId, s.getMaintainRole(), true, false);
                 }
                 // save the site
                 siteService.save(s);

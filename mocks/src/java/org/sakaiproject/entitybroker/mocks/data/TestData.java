@@ -26,6 +26,7 @@ import org.sakaiproject.entitybroker.entityprovider.capabilities.RequestStorable
 import org.sakaiproject.entitybroker.entityprovider.capabilities.RedirectControllable;
 import org.sakaiproject.entitybroker.entityprovider.capabilities.RedirectDefinable;
 import org.sakaiproject.entitybroker.entityprovider.capabilities.TagProvideable;
+import org.sakaiproject.entitybroker.entityprovider.extension.Formats;
 import org.sakaiproject.entitybroker.mocks.ActionsDefineableEntityProviderMock;
 import org.sakaiproject.entitybroker.mocks.ActionsEntityProviderMock;
 import org.sakaiproject.entitybroker.mocks.ActionsExecutionEntityProviderMock;
@@ -91,7 +92,7 @@ public class TestData {
 
 
    // testing constants
-   public static String SERVER_URL = "http://localhost:8001/portal";
+   public static String SERVER_URL = "http://localhost:8080";
    public static String DIRECT = "/direct";
 
    public static String PREFIX1 = "AZprefix1";
@@ -143,8 +144,13 @@ public class TestData {
    public static MyEntity entity4_3 = new MyEntity(IDS4[2], "something2");
    // urls to data
    public static String EXTENSION4 = Outputable.JSON;
-   public static String ENTITY_URL4 = EntityReference.SEPARATOR + PREFIX4 + EntityReference.SEPARATOR + IDS4[0] + EXTENSION4;
+   public static String ENTITY_URL4 = EntityReference.SEPARATOR + PREFIX4 + EntityReference.SEPARATOR + IDS4[0] + "." + Formats.XML;
    public static String INPUT_URL4 = EntityReference.SEPARATOR + PREFIX4 + EntityReference.SEPARATOR + IDS4[0] + "/extra/stuff." + EXTENSION4;
+
+   public static String ENTITY_URL4_XML = EntityReference.SEPARATOR + PREFIX4 + EntityReference.SEPARATOR + IDS4[0] + "." + Formats.XML;
+   public static String ENTITY_URL4_JSON = EntityReference.SEPARATOR + PREFIX4 + EntityReference.SEPARATOR + IDS4[0] + "." + Formats.JSON;
+   public static String COLLECTION_URL4_XML = EntityReference.SEPARATOR + PREFIX4 + "." + Formats.XML;
+   public static String COLLECTION_URL4_JSON = EntityReference.SEPARATOR + PREFIX4 + "." + Formats.JSON;
 
    public static String PREFIX5 = "myPrefix5";
    public static String[] IDS5 = new String[] { "fiver", "50" };

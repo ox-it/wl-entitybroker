@@ -56,7 +56,7 @@ import org.w3c.dom.Element;
  * @author Aaron Zeckoski (azeckoski @ gmail.com)
  */
 @SuppressWarnings("unchecked")
-@ReflectIgnoreClassFields({"createdBy","modifiedBy","properties","propertiesEdit","pages","members","orderedPages","roles","users"})
+@ReflectIgnoreClassFields({"createdBy","modifiedBy","properties","propertiesEdit","pages","members","orderedPages","roles","users","groups"})
 public class EntitySite implements Site {
 
     private static final long serialVersionUID = 7526472295622776147L;
@@ -81,9 +81,7 @@ public class EntitySite implements Site {
     private boolean customPageOrdered;
     private String owner;
     private long lastModified;
-
-    // special use
-    protected String maintainerUserId;
+    private String[] userRoles;
 
     public Map<String, String> props;
 
@@ -138,6 +136,7 @@ public class EntitySite implements Site {
         this.providerGroupId = providerGroupId;
         this.customPageOrdered = customPageOrdered;
         this.lastModified = System.currentTimeMillis();
+        getUserRoles(); // populate the user roles
     }
 
     public EntitySite(Site site) {
@@ -152,12 +151,14 @@ public class EntitySite implements Site {
         this.joinerRole = site.getJoinerRole();
         this.skin = site.getSkin();
         this.published = site.isPublished();
+        this.pubView = site.isPubView();
         this.type = site.getType();
         this.customPageOrdered = site.isCustomPageOrdered();
         this.maintainRole = site.getMaintainRole();
         this.providerGroupId = site.getProviderGroupId();
         this.owner = site.getCreatedBy() == null ? null : site.getCreatedBy().getId();
         this.lastModified = site.getModifiedTime() == null ? System.currentTimeMillis() : site.getModifiedTime().getTime();
+        getUserRoles(); // populate the user roles
         // properties
         ResourceProperties rp = site.getProperties();
         for (Iterator<String> iterator = rp.getPropertyNames(); iterator.hasNext();) {
@@ -203,18 +204,6 @@ public class EntitySite implements Site {
             owner = new Owner(this.owner, this.owner);
         }
         return owner;
-    }
-
-    public void setMaintainerId(String userId) {
-        this.maintainerUserId = userId;
-    }
-    
-    /**
-     * INTERNAL USE
-     * @return the userId to set the initial maintainer to if there is one
-     */
-    public String getMaintainerUserId() {
-        return maintainerUserId;
     }
 
     @EntityLastModified
@@ -364,6 +353,28 @@ public class EntitySite implements Site {
         this.pubView = pubView;
     }
 
+    public String[] getUserRoles() {
+        if (userRoles == null) {
+            if (site == null) {
+                userRoles = new String[] {maintainRole, joinerRole};
+            } else {
+                Set<Role> roles = (Set<Role>) site.getRoles();
+                userRoles = new String[roles.size()];
+                int i = 0;
+                for (Role role : roles) {
+                    userRoles[i] = role.getId();
+                    i++;
+                }
+            }
+        }
+        return userRoles;
+    }
+    
+    public void setUserRoles(String[] userRoles) {
+        this.userRoles = userRoles;
+    }
+    
+    
     // Site operations
 
     public Group addGroup() {

@@ -21,10 +21,13 @@
 package org.sakaiproject.entitybroker.providers;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -32,6 +35,7 @@ import java.util.Set;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sakaiproject.authz.api.Member;
+import org.sakaiproject.email.api.EmailService;
 import org.sakaiproject.entitybroker.EntityReference;
 import org.sakaiproject.entitybroker.EntityView;
 import org.sakaiproject.entitybroker.entityprovider.CoreEntityProvider;
@@ -39,6 +43,7 @@ import org.sakaiproject.entitybroker.entityprovider.annotations.EntityCustomActi
 import org.sakaiproject.entitybroker.entityprovider.capabilities.ActionsExecutable;
 import org.sakaiproject.entitybroker.entityprovider.capabilities.CollectionResolvable;
 import org.sakaiproject.entitybroker.entityprovider.capabilities.RESTful;
+import org.sakaiproject.entitybroker.entityprovider.extension.ActionReturn;
 import org.sakaiproject.entitybroker.entityprovider.extension.EntityData;
 import org.sakaiproject.entitybroker.entityprovider.extension.Formats;
 import org.sakaiproject.entitybroker.entityprovider.search.Order;
@@ -73,15 +78,78 @@ public class MembershipEntityProvider extends AbstractEntityProvider implements 
     public void setUserEntityProvider(UserEntityProvider userEntityProvider) {
         this.userEntityProvider = userEntityProvider;
     }
-
+    
+    private EmailService emailService;
+    public void setEmailService(EmailService emailService) {
+        this.emailService = emailService;
+    }
 
     public static String PREFIX = "membership";
     public String getEntityPrefix() {
         return PREFIX;
     }
 
-    @EntityCustomAction(action="site",viewKey=EntityView.VIEW_LIST)
-    public List<?> getSiteMemberships(EntityView view, Map<String, Object> params) {
+    /**
+     * join/site/siteId or join/siteId
+     * Handle the special case of joining a site,
+     * using normal create will not work
+     */
+    @EntityCustomAction(action="join",viewKey=EntityView.VIEW_NEW)
+    public boolean joinCurrentUserToSite(EntityView view, Map<String, Object> params) {
+        String siteId = view.getPathSegment(2);
+        if (siteId == null) {
+            siteId = (String) params.get("siteId");
+        } else if ("site".equals(siteId)) {
+            siteId = view.getPathSegment(3);
+        }
+        if (siteId == null) {
+            throw new IllegalArgumentException("siteId must be set in order join sites, set in params or in the URL /join/site/siteId");
+        }
+        try {
+            siteService.join(siteId);
+        } catch (IdUnusedException e) {
+            throw new IllegalArgumentException("The siteId provided ("+siteId+") could not be found: " + e, e);
+        } catch (PermissionException e) {
+            throw new SecurityException("The current user ("+developerHelperService.getCurrentUserId()+") does not have permission to join site ("+siteId+"): " + e, e);
+        }
+        return true;
+    }
+
+    /**
+     * unjoin/site/siteId or unjoin/siteId
+     * Handle the special case of un-joining a site,
+     * using normal delete will not work
+     */
+    @EntityCustomAction(action="unjoin",viewKey=EntityView.VIEW_NEW)
+    public boolean unjoinCurrentUserFromSite(EntityView view, Map<String, Object> params) {
+        String siteId = view.getPathSegment(2);
+        if (siteId == null) {
+            siteId = (String) params.get("siteId");
+        } else if ("site".equals(siteId)) {
+            siteId = view.getPathSegment(3);
+        }
+        if (siteId == null) {
+            throw new IllegalArgumentException("siteId must be set in order to unjoin sites, set in params or in the URL /unjoin/site/siteId");
+        }
+        try {
+            siteService.unjoin(siteId);
+        } catch (IdUnusedException e) {
+            throw new IllegalArgumentException("The siteId provided ("+siteId+") could not be found: " + e, e);
+        } catch (PermissionException e) {
+            throw new SecurityException("The current user ("+developerHelperService.getCurrentUserId()+") does not have permission to join site ("+siteId+"): " + e, e);
+        }
+        return true;
+    }
+
+    /**
+     * Handle the special needs of UX site membership settings, either getting the current
+     * list of site memberships via a GET request, or creating a new batch of site memberships
+     * via a POST request. In the case of a POST, special HTTP response headers will be
+     * used to communicate success or warning conditions to the client.
+     */
+    @EntityCustomAction(action="site",viewKey="")
+    public ActionReturn handleSiteMemberships(EntityView view, Map<String, Object> params) {
+        if (log.isDebugEnabled()) log.debug("handleSiteMemberships method=" + view.getMethod() + ", params=" + params);
         String siteId = view.getPathSegment(2);
         if (siteId == null) {
             siteId = (String) params.get("siteId");
@@ -89,9 +157,91 @@ public class MembershipEntityProvider extends AbstractEntityProvider implements 
                 throw new IllegalArgumentException("siteId must be set in order to get site memberships, set in params or in the URL /membership/site/siteId");
             }
         }
-        List<?> l = getEntities(new EntityReference(PREFIX,""), 
-                new Search(CollectionResolvable.SEARCH_LOCATION_REFERENCE,"/site/" + siteId));
-        return l;
+        String locationReference = "/site/" + siteId;
+        
+        Map<String, String> extraResponseHeaders = null;
+        if (EntityView.Method.POST.name().equals(view.getMethod())) {
+            extraResponseHeaders = createBatchMemberships(view, params, locationReference);
+        }
+        
+        List<EntityData> l = getEntities(new EntityReference(PREFIX,""), 
+                new Search(CollectionResolvable.SEARCH_LOCATION_REFERENCE, locationReference));
+        ActionReturn actionReturn = new ActionReturn(l, Formats.JSON);
+        if ((extraResponseHeaders != null) && !extraResponseHeaders.isEmpty()) {
+            actionReturn.setHeaders(extraResponseHeaders);
+        }
+        return actionReturn;
+    }
+
+    /**
+     * Add members to a site.
+     * @param view
+     * @param params request parameters including a list of userSearchValues
+     * @param locationReference
+     * @return headers containing success or warning messages for the client
+     */
+    public Map<String, String> createBatchMemberships(EntityView view, Map<String, Object> params, String locationReference) {
+        
+        SiteGroup sg = findLocationByReference(locationReference);
+        String roleId = (String)params.get("memberRole");
+        String notificationMessage = (String)params.get("notificationMessage");
+        if ((notificationMessage != null) && (notificationMessage.trim().length() == 0)) {
+            notificationMessage = null;
+        }
+        boolean active = true;
+        
+        Map<String, String> responseHeaders = new HashMap<String, String>();
+        Set<EntityUser> users = new HashSet<EntityUser>();
+        Set<String> valuesNotFound = new HashSet<String>();
+        Set<String> valuesAlreadyMembers = new HashSet<String>();
+        List<String> userSearchValues = getListFromValue(params.get("userSearchValues"));
+        for (String userSearchValue : userSearchValues) {
+            EntityUser user = userEntityProvider.findUserFromSearchValue(userSearchValue);
+            if (user != null) {
+                if (sg.site.getUserRole(user.getId()) != null) {
+                    valuesAlreadyMembers.add(userSearchValue);
+                } else {
+                    users.add(user);
+                }
+            } else {
+                valuesNotFound.add(userSearchValue);
+            }
+        }
+        
+        if (!users.isEmpty()) {
+            String currentUserEmail = userEntityProvider.getCurrentUser(null).getEmail();
+            for (EntityUser user : users) {
+                sg.site.addMember(user.getId(), roleId, active, false);
+                if (notificationMessage != null) {
+                    /**
+                     * TODO Should the From address be the site contact or the "setup.request" Sakai property?
+                     * TODO We need to retrieve a localized message title and additional body (if any) instead of hard-coding it.
+                     * See the new Email Template Service for a likely approach.
+                     */
+                    emailService.send(currentUserEmail, user.getEmail(), 
+                        "New Site Membership Notification", notificationMessage, null, null, null);
+                }
+            }
+            saveSiteMembership(sg.site);
+            responseHeaders.put("x-success-count", String.valueOf(users.size()));
+        }        
+        if (!valuesNotFound.isEmpty()) {
+            Iterator<String> listIter = valuesNotFound.iterator();
+            StringBuilder listString = new StringBuilder(listIter.next());
+            while (listIter.hasNext()) {
+                listString.append(", ").append(listIter.next());
+            }
+            responseHeaders.put("x-warning-not-found", listString.toString());
+        }
+        if (!valuesAlreadyMembers.isEmpty()) {
+            Iterator<String> listIter = valuesAlreadyMembers.iterator();
+            StringBuilder listString = new StringBuilder(listIter.next());
+            while (listIter.hasNext()) {
+                listString.append(", ").append(listIter.next());
+            }
+            responseHeaders.put("x-warning-already-members", listString.toString());
+        }
+        return responseHeaders;
     }
 
     @EntityCustomAction(action="group",viewKey=EntityView.VIEW_LIST)
@@ -143,8 +293,7 @@ public class MembershipEntityProvider extends AbstractEntityProvider implements 
      * Gets the list of all memberships for the current user if no params provided,
      * otherwise gets memberships in a specified location or for a specified user
      */
-    @SuppressWarnings("unchecked")
-    public List<?> getEntities(EntityReference ref, Search search) {
+    public List<EntityData> getEntities(EntityReference ref, Search search) {
         String currentUserId = developerHelperService.getCurrentUserId();
         String userId = null;
         String locationReference = null;
@@ -201,6 +350,10 @@ public class MembershipEntityProvider extends AbstractEntityProvider implements 
             // find memberships by userId
             userId = userEntityProvider.findAndCheckUserId(userId, null);
             boolean userCurrent = userId.equals(currentUserId);
+            if (!userCurrent && !developerHelperService.isUserAdmin(currentUserId)) {
+                throw new SecurityException("Only admin can access other user memberships, current user ("+currentUserId+") cannot access ref: " + userId);
+            }
+            
             // Is there a faster way to do this? I really truly hope so -AZ
             try {
                 if (!userCurrent) {
@@ -295,9 +448,6 @@ public class MembershipEntityProvider extends AbstractEntityProvider implements 
             }
             sg = findLocationByReference(locationReference);
             roleId = member.getRole().getId();
-            if (roleId == null || "".equals(roleId)) {
-                roleId = sg.site.getJoinerRole();
-            }
             userId = userEntityProvider.findAndCheckUserId(member.getUserId(), member.getUserEid());
             active = member.isActive();
         } else if (entity.getClass().isAssignableFrom(EntityMember.class)) {
@@ -305,22 +455,37 @@ public class MembershipEntityProvider extends AbstractEntityProvider implements 
             EntityMember em = (EntityMember) entity;
             sg = findLocationByReference(em.getLocationReference());
             roleId = em.getMemberRole();
-            if (roleId == null || "".equals(roleId)) {
-                roleId = sg.site.getJoinerRole();
-            }
-            userId = userEntityProvider.findAndCheckUserId(em.getUserId(), em.getUserEid());
+            if ((em.getUserId() != null) || (em.getUserEid() != null)) {
+                userId = userEntityProvider.findAndCheckUserId(em.getUserId(), em.getUserEid());
+			}
+            active = em.isActive();
         } else {
             throw new IllegalArgumentException("Invalid entity for create/update, must be Member or EntityMember object");
         }
+        if (roleId == null || "".equals(roleId)) {
+            roleId = sg.site.getJoinerRole();
+        }
+
         // check for a batch add
         String[] userIds = checkForBatch(params, userId);
         // now add all the memberships
         String memberId = "";
+        String currentUserId = developerHelperService.getCurrentUserId();
         for (int i = 0; i < userIds.length; i++) {
             if (sg.group == null) {
                 // site only
-                sg.site.addMember(userIds[i], roleId, active, false);
-                saveSiteMembership(sg.site);
+                if (userIds[i].equals(currentUserId) && sg.site.isJoinable()) {
+                    try {
+                        siteService.join(sg.site.getId());
+                    } catch (IdUnusedException e) {
+                        throw new IllegalArgumentException("Invalid site: " + sg.site.getId() + ":" + e.getMessage(), e);
+                    } catch (PermissionException e) {
+                        throw new SecurityException("Current user not allowed to join site: " + sg.site.getId() + ":" + e.getMessage(), e);
+                    }
+                } else {
+                    sg.site.addMember(userIds[i], roleId, active, false);
+                    saveSiteMembership(sg.site);
+                }
             } else {
                 // group and site
                 sg.group.addMember(userIds[i], roleId, active, false);
@@ -332,8 +497,9 @@ public class MembershipEntityProvider extends AbstractEntityProvider implements 
             }
         }
         if (userIds.length > 1) {
-            log.info("Batch add memberships: siteId="+sg.site.getId()+",groupId="+sg.group == null ? "none" : sg.group.getId()
-                    +",roleId="+roleId+",active="+active+", userIds=" + Search.arrayToString(userIds));
+            log.info("Batch add memberships: siteId="+((sg.site == null) ? "none" : sg.site.getId())+",groupId="+((sg.group == null) ? "none" : sg.group.getId())
+                    +",userIds=" + Search.arrayToString(userIds));
+
             memberId = "batch:" + memberId;
         }
         return memberId;
@@ -370,7 +536,7 @@ public class MembershipEntityProvider extends AbstractEntityProvider implements 
             }
         }
         if (userIds.length > 1) {
-            log.info("Batch remove memberships: siteId="+sg.site.getId()+",groupId="+sg.group == null ? "none" : sg.group.getId()
+            log.info("Batch remove memberships: siteId="+((sg.site == null) ? "none" : sg.site.getId())+",groupId="+((sg.group == null) ? "none" : sg.group.getId())
                     +",userIds=" + Search.arrayToString(userIds));
         }
     }
@@ -388,7 +554,10 @@ public class MembershipEntityProvider extends AbstractEntityProvider implements 
         EntityMember em = null;
         Member member = null;
         SiteGroup sg = findLocationByReference(locationReference);
-        isAllowedAccessMembers(sg.site);
+        String currentUserId = developerHelperService.getCurrentUserId();
+        if (!userId.equals(currentUserId)) {
+            isAllowedAccessMembers(sg.site);
+        }
         if (sg.group == null) {
             // site only
             member = sg.site.getMember(userId);
@@ -407,7 +576,6 @@ public class MembershipEntityProvider extends AbstractEntityProvider implements 
      * @param locationReference a site ref with an optional group ref (can look like this: /site/siteid/group/groupId)
      * @return the list of memberships for the given location and role
      */
-    @SuppressWarnings("unchecked")
     public List<EntityMember> getMembers(String locationReference) {
         ArrayList<EntityMember> l = new ArrayList<EntityMember>();
         Set<Member> members = null;
@@ -476,20 +644,29 @@ public class MembershipEntityProvider extends AbstractEntityProvider implements 
             userIds.add(userId);
         }
         if (params != null) {
-            Object uids = params.get("userIds");
-            if (uids != null && uids.getClass().isArray()) {
-                String[] batchUserIds = (String[]) uids;
-                if (batchUserIds.length > 0) {
-                    for (int i = 0; i < batchUserIds.length; i++) {
-                        String uid = userEntityProvider.findAndCheckUserId(batchUserIds[i], null);
-                        if (uid != null) {
-                            userIds.add(uid);
-                        }
-                    }
+            List<String> batchUserIds = getListFromValue(params.get("userIds"));
+            for (String batchUserId : batchUserIds) {
+                String uid = userEntityProvider.findAndCheckUserId(batchUserId, null);
+                if (uid != null) {
+                    userIds.add(uid);
                 }
             }
+
         }
+        if (log.isDebugEnabled()) log.debug("Received userIds=" + userIds);
         return userIds.toArray(new String[userIds.size()]);
+    }
+    
+    protected List<String> getListFromValue(Object paramValue) {
+        List<String> stringList = new ArrayList<String>();
+    	if (paramValue != null) {
+    	    if (paramValue.getClass().isArray()) {
+    	        stringList = Arrays.asList((String[])paramValue);
+    	    } else if (paramValue instanceof String) {
+    	        stringList.add((String)paramValue);
+    	    }
+    	}
+    	return stringList;
     }
 
     protected String makeRoleId(String currentRoleId, Site site) {
@@ -510,7 +687,7 @@ public class MembershipEntityProvider extends AbstractEntityProvider implements 
         } catch (IdUnusedException e) {
             throw new IllegalArgumentException("Invalid site: " + site.getId() + ":" + e.getMessage(), e);
         } catch (PermissionException e) {
-            throw new SecurityException("Current user not allowed to update site group memberships in group: " + group.getId() + ":" + e.getMessage(), e);
+            throw new SecurityException("Current user ("+developerHelperService.getCurrentUserId()+") not allowed to update site group memberships in group: " + group.getId() + " :"+e.getMessage()+":"+e.getCause(), e);
         }
     }
 
@@ -523,7 +700,7 @@ public class MembershipEntityProvider extends AbstractEntityProvider implements 
         } catch (IdUnusedException e) {
             throw new IllegalArgumentException("Invalid site: " + site.getId() + ":" + e.getMessage(), e);
         } catch (PermissionException e) {
-            throw new SecurityException("Current user not allowed to update site memberships in site: " + site.getId() + ":" + e.getMessage(), e);
+            throw new SecurityException("Current user ("+developerHelperService.getCurrentUserId()+") not allowed to update site memberships in site: " + site.getId() + " :"+e.getMessage()+":"+e.getCause(), e);
         }
     }
 
@@ -546,13 +723,15 @@ public class MembershipEntityProvider extends AbstractEntityProvider implements 
         // check if the current user can access this
         String userReference = developerHelperService.getCurrentUserReference();
         if (userReference == null) {
-            throw new SecurityException("Anonymous users may not view memberships in ("+site.getReference()+")");
+        	throw new SecurityException("Anonymous users may not view memberships in ("+site.getReference()+")");
         } else {
-            if (! siteService.allowViewRoster(site.getId())) {
-                throw new SecurityException("Memberships in this site ("+site.getReference()+") are not accessible for the current user: " + userReference);
-            }
+        	String siteId = site.getId();
+        	if (siteService.allowViewRoster(siteId)) {
+        		return true;
+        	} else {
+        		throw new SecurityException("Memberships in this site ("+site.getReference()+") are not accessible for the current user: " + userReference);            	
+        	}
         }
-        return true;
     }
 
     /**
@@ -560,7 +739,7 @@ public class MembershipEntityProvider extends AbstractEntityProvider implements 
      * 
      * @author Aaron Zeckoski (azeckoski @ gmail.com)
      */
-    public class SiteGroup {
+    public static class SiteGroup {
         public Site site;
         public Group group;
         public String locationReference;

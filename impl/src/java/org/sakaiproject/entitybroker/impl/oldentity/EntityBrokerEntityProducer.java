@@ -32,11 +32,11 @@ import org.sakaiproject.entity.api.EntityProducer;
 import org.sakaiproject.entity.api.HttpAccess;
 import org.sakaiproject.entity.api.Reference;
 import org.sakaiproject.entity.api.ResourceProperties;
+import org.sakaiproject.entitybroker.EntityBrokerManager;
 import org.sakaiproject.entitybroker.EntityReference;
 import org.sakaiproject.entitybroker.entityprovider.CoreEntityProvider;
 import org.sakaiproject.entitybroker.entityprovider.EntityProvider;
 import org.sakaiproject.entitybroker.entityprovider.EntityProviderManager;
-import org.sakaiproject.entitybroker.impl.EntityBrokerManager;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
@@ -61,11 +61,6 @@ public class EntityBrokerEntityProducer implements EntityProducer {
    private EntityBrokerManager entityBrokerManager;
    public void setEntityBrokerManager(EntityBrokerManager entityBrokerManager) {
       this.entityBrokerManager = entityBrokerManager;
-   }
-
-   private HttpAccess httpAccess;
-   public void setHttpAccess(HttpAccess httpAccess) {
-      this.httpAccess = httpAccess;
    }
 
    /**
@@ -149,11 +144,10 @@ public class EntityBrokerEntityProducer implements EntityProducer {
 
    /*
     * (non-Javadoc)
-    * 
     * @see org.sakaiproject.entity.api.EntityProducer#getHttpAccess()
     */
    public HttpAccess getHttpAccess() {
-      return httpAccess;
+      return null; // no more http access through access servlet
    }
 
    /*

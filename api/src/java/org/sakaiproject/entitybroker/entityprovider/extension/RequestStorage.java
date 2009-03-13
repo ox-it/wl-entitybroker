@@ -63,6 +63,16 @@ public interface RequestStorage {
     public Map<String, Object> getStorageMapCopy();
 
     /**
+     * Special version which allows getting only the parts that are desired
+     * @param includeInternal include the internal request values
+     * @param includeHeaders include the request headers
+     * @param includeParams include the request parameters
+     * @param includeAttributes include the request attributes
+     * @return the map with the requested values
+     */
+    public Map<String, Object> getStorageMapCopy(boolean includeInternal, boolean includeHeaders, boolean includeParams, boolean includeAttributes);
+
+    /**
      * Get a value that is stored in the request for a specific key
      * @param key a key for a stored value
      * @return the stored value if found OR null if not found
@@ -79,14 +89,5 @@ public interface RequestStorage {
      * @throws IllegalFormatConversionException if the conversion cannot be completed
      */
     public <T> T getStoredValueAsType(Class<T> type, String key);
-
-    /**
-     * Store a value in the request storage with an associated key
-     * @param key a key for a stored value
-     * @param value an object to store
-     * @throws IllegalArgumentException if the key OR value are null, 
-     * also if an attempt is made to change a reserved value (see {@link RequestStorage})
-     */
-    public void setStoredValue(String key, Object value);
 
 }

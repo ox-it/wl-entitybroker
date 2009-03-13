@@ -20,7 +20,7 @@
         (Entity Producers and Entities) and entities created using entity providers are
         accessible in Sakai as if they were created using the legacy system. Send feedback
         or comments to Aaron Zeckoski (azeckoski@gmail.com, aaronz@vt.edu) </description>
-    <version>1.3.5-SNAPSHOT</version><!--entitybroker.version-->
+    <version>1.3.6-SNAPSHOT</version><!--entitybroker.version-->
 <!-- Sakai master pom is parent -->
     <parent>
         <artifactId>master</artifactId>
@@ -45,6 +45,7 @@
             <modules>
                 <module>api</module>
                 <module>impl</module>
+		<module>restImpl</module>
                 <module>tool</module>
                 <module>pack</module>
                 <module>mocks</module>
@@ -126,7 +127,7 @@
             <layout>default</layout>
             <url>http://source.sakaiproject.org/maven2</url>
             <snapshots>
-                <enabled>false</enabled>
+                <enabled>true</enabled>
             </snapshots>
         </repository>
         <repository>
@@ -200,13 +201,22 @@
             <dependency>
                 <groupId>org.sakaiproject.entitybroker</groupId>
                 <artifactId>entitybroker-api</artifactId>
-                <version>1.3.5-SNAPSHOT</version><!--entitybroker.version-->
+                <version>1.3.6-SNAPSHOT</version><!--entitybroker.version-->
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.sakaiproject.entitybroker</groupId>
                 <artifactId>entitybroker-impl</artifactId>
-                <version>1.3.5-SNAPSHOT</version><!--entitybroker.version-->
+                <version>1.3.6-SNAPSHOT</version><!--entitybroker.version-->
+                <!--
+                    <scope>runtime</scope> for 2.0.6 compatibility,
+                    http://jira.codehaus.org/browse/MNG-2919
+                -->
+            </dependency>
+            <dependency>
+                <groupId>org.sakaiproject.entitybroker</groupId>
+                <artifactId>entitybroker-restimpl</artifactId>
+                <version>1.3.6-SNAPSHOT</version><!--entitybroker.version-->
                 <!--
                     <scope>runtime</scope> for 2.0.6 compatibility,
                     http://jira.codehaus.org/browse/MNG-2919
@@ -215,7 +225,7 @@
             <dependency>
                 <groupId>org.sakaiproject.entitybroker</groupId>
                 <artifactId>entitybroker-mocks</artifactId>
-                <version>1.3.5-SNAPSHOT</version><!--entitybroker.version-->
+                <version>1.3.6-SNAPSHOT</version><!--entitybroker.version-->
                 <!--
                     <scope>test</scope> for 2.0.6 compatibility,
                     http://jira.codehaus.org/browse/MNG-2919
@@ -224,7 +234,7 @@
             <dependency>
                 <groupId>org.sakaiproject.entitybroker</groupId>
                 <artifactId>entitybroker-utils</artifactId>
-                <version>1.3.5-SNAPSHOT</version><!--entitybroker.version-->
+                <version>1.3.6-SNAPSHOT</version><!--entitybroker.version-->
             </dependency>
             <!-- IMPL dependencies -->
             <dependency>
@@ -238,6 +248,36 @@
                 <artifactId>reflectutils</artifactId>
                 <version>0.9.10</version>
             </dependency>
+<!-- testing -->
+            <dependency>
+                <groupId>org.mortbay.jetty</groupId>
+                <artifactId>jetty</artifactId>
+                <version>6.1.11</version>
+                <type>jar</type>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.mortbay.jetty</groupId>
+                <artifactId>jetty-servlet-tester</artifactId>
+                <version>6.1.11</version>
+                <type>jar</type>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>junit</groupId>
+                <artifactId>junit</artifactId>
+                <version>3.8.2</version>
+                <type>jar</type>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>junit</groupId>
+                <artifactId>junit</artifactId>
+                <version>4.5</version>
+                <type>jar</type>
+                <scope>test</scope>
+            </dependency>
+
         </dependencies>
     </dependencyManagement>
 

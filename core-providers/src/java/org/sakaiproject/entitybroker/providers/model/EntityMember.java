@@ -40,6 +40,7 @@ import org.sakaiproject.entitybroker.entityprovider.annotations.EntityTitle;
  */
 @ReflectIgnoreClassFields({"role"})
 public class EntityMember implements Member {
+    public final static long serialVersionUID = 1l;
 
     @EntityId
     private String id;
@@ -255,11 +256,8 @@ public class EntityMember implements Member {
     /* (non-Javadoc)
      * @see org.sakaiproject.authz.api.Member#setActive(boolean)
      */
-    public void setActive(boolean arg0) {
-        if (member != null) {
-            member.setActive(arg0);
-        }
-        throw new UnsupportedOperationException();
+    public void setActive(boolean active) {
+        this.active = active;
     }
 
     /* (non-Javadoc)
