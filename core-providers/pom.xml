@@ -1,5 +1,6 @@
 <?xml version="1.0"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <name>Sakai Entity Broker Core Providers</name>
     <groupId>org.sakaiproject.entitybroker</groupId>
@@ -15,7 +16,7 @@
     <parent>
         <artifactId>entitybroker</artifactId>
         <groupId>org.sakaiproject</groupId>
-        <version>1.3.6</version><!--entitybroker.version-->
+        <version>1.3.6-SNAPSHOT</version><!--entitybroker.version-->
     </parent>
     <dependencies>
         <!-- internal dependencies -->
@@ -44,7 +45,7 @@
         </dependency>
 
         <!-- Sakai K1 dependencies -->
-<!-- 
+<!-- -->
         <dependency>
             <groupId>org.sakaiproject.kernel</groupId>
             <artifactId>sakai-kernel-api</artifactId>
@@ -57,25 +58,17 @@
             <groupId>org.sakaiproject.kernel</groupId>
             <artifactId>sakai-kernel-util</artifactId>
         </dependency>
- -->
+<!-- -->
 
         <!-- Pre K1 Sakai deps -->
-<!-- -->
+<!-- 
         <dependency>
             <groupId>org.sakaiproject</groupId>
             <artifactId>sakai-authz-api</artifactId>
         </dependency>
         <dependency>
             <groupId>org.sakaiproject</groupId>
-            <artifactId>sakai-cluster-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.sakaiproject</groupId>
             <artifactId>sakai-component-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.sakaiproject</groupId>
-            <artifactId>sakai-email-api</artifactId>
         </dependency>
         <dependency>
             <groupId>org.sakaiproject</groupId>
@@ -106,7 +99,7 @@
             <artifactId>sakai-entity-util</artifactId>
             <version>${sakai.version}</version>
         </dependency>
-<!-- -->
+ -->
     </dependencies>
 
     <build>
@@ -126,16 +119,6 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
             </plugin>
-<!-- 
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-war-plugin</artifactId>
-                <configuration>
-                    <warName>providers</warName>
-                    <outputDirectory>${maven.tomcat.home}</outputDirectory>
-                </configuration>
-            </plugin>
- -->
         </plugins>
     </build>
 </project>
