@@ -10,6 +10,7 @@
         or comments to Aaron Zeckoski (azeckoski@gmail.com, aaronz@vt.edu)</comment>
   <projects>
     <project>entitybroker-api</project>
+    <project>entitybroker-utils</project>
   </projects>
   <buildSpec>
     <buildCommand>
