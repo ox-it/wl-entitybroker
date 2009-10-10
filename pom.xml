@@ -25,7 +25,7 @@
     <parent>
         <artifactId>master</artifactId>
         <groupId>org.sakaiproject</groupId>
-        <version>2.6-SNAPSHOT</version>
+        <version>2.6.0</version>
 <!--        <version>2.5.2</version>-->
 <!--        <version>M2</version>--><!-- 2.5.x -->
         <relativePath>../master/pom.xml</relativePath>
@@ -191,8 +191,8 @@
     </licenses>
 <!-- define source code repository location -->
     <scm>
-        <connection>scm:svn:https://source.sakaiproject.org/svn/entitybroker/trunk</connection>
-        <developerConnection>scm:svn:https://source.sakaiproject.org/svn/entitybroker/trunk</developerConnection>
+        <connection>scm:svn:https://source.sakaiproject.org/svn/entitybroker/branches/sakai_2-6-x</connection>
+        <developerConnection>scm:svn:https://source.sakaiproject.org/svn/entitybroker/branches/sakai_2-6-x</developerConnection>
         <url>https://source.sakaiproject.org/viewsvn/entitybroker/</url>
     </scm>
 <!-- handles the management of entitybroker related dependencies -->
