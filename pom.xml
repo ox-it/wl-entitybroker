@@ -1,5 +1,6 @@
 <?xml version="1.0"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <name>Sakai Entity Broker</name>
     <groupId>org.sakaiproject</groupId>
@@ -19,7 +20,7 @@
         (Entity Producers and Entities) and entities created using entity providers are
         accessible in Sakai as if they were created using the legacy system. Send feedback
         or comments to Aaron Zeckoski (azeckoski@gmail.com, aaronz@vt.edu) </description>
-    <version>1.3.7-SNAPSHOT</version><!--entitybroker.version-->
+    <version>1.3.6-SNAPSHOT</version><!--entitybroker.version-->
 <!-- Sakai master pom is parent -->
     <parent>
         <artifactId>master</artifactId>
@@ -141,7 +142,7 @@
     </repositories>
     <distributionManagement>
         <repository>
-            <id>Sakai-Maven2</id>
+            <id>sakai-maven2</id>
             <name>Sakaiproject Maven 2 repository</name>
             <url>dav:https://source.sakaiproject.org/maven2</url>
         </repository>
@@ -200,13 +201,13 @@
             <dependency>
                 <groupId>org.sakaiproject.entitybroker</groupId>
                 <artifactId>entitybroker-api</artifactId>
-                <version>1.3.7-SNAPSHOT</version><!--entitybroker.version-->
+                <version>1.3.6-SNAPSHOT</version><!--entitybroker.version-->
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.sakaiproject.entitybroker</groupId>
                 <artifactId>entitybroker-impl</artifactId>
-                <version>1.3.7-SNAPSHOT</version><!--entitybroker.version-->
+                <version>1.3.6-SNAPSHOT</version><!--entitybroker.version-->
                 <!--
                     <scope>runtime</scope> for 2.0.6 compatibility,
                     http://jira.codehaus.org/browse/MNG-2919
@@ -215,7 +216,7 @@
             <dependency>
                 <groupId>org.sakaiproject.entitybroker</groupId>
                 <artifactId>entitybroker-restimpl</artifactId>
-                <version>1.3.7-SNAPSHOT</version><!--entitybroker.version-->
+                <version>1.3.6-SNAPSHOT</version><!--entitybroker.version-->
                 <!--
                     <scope>runtime</scope> for 2.0.6 compatibility,
                     http://jira.codehaus.org/browse/MNG-2919
@@ -224,7 +225,7 @@
             <dependency>
                 <groupId>org.sakaiproject.entitybroker</groupId>
                 <artifactId>entitybroker-mocks</artifactId>
-                <version>1.3.7-SNAPSHOT</version><!--entitybroker.version-->
+                <version>1.3.6-SNAPSHOT</version><!--entitybroker.version-->
                 <!--
                     <scope>test</scope> for 2.0.6 compatibility,
                     http://jira.codehaus.org/browse/MNG-2919
@@ -233,7 +234,7 @@
             <dependency>
                 <groupId>org.sakaiproject.entitybroker</groupId>
                 <artifactId>entitybroker-utils</artifactId>
-                <version>1.3.7-SNAPSHOT</version><!--entitybroker.version-->
+                <version>1.3.6-SNAPSHOT</version><!--entitybroker.version-->
             </dependency>
             <!-- IMPL dependencies -->
             <dependency>
