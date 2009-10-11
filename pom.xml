@@ -146,9 +146,14 @@
             <name>Sakaiproject Maven 2 repository</name>
             <url>dav:https://source.sakaiproject.org/maven2</url>
         </repository>
-        <site>
+        <repository>
+            <id>sakai-maven2-snapshots</id>
+            <name>Sakaiproject Maven 2 repository</name>
+            <url>dav:https://source.sakaiproject.org/maven2-snapshots</url>
+        </repository>
+	<site>
             <id>local site</id>
-            <url>file:/tmp/entitybroker/site/</url>
+            <url>scp://source.sakaiproject.org//var/www/html/release/entityboker/${project.version}</url>
         </site>
     </distributionManagement>
     <issueManagement>
