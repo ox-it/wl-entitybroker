@@ -146,11 +146,11 @@
             <name>Sakaiproject Maven 2 repository</name>
             <url>dav:https://source.sakaiproject.org/maven2</url>
         </repository>
-        <repository>
+        <snapshotRepository>
             <id>sakai-maven2-snapshots</id>
             <name>Sakaiproject Maven 2 repository</name>
             <url>dav:https://source.sakaiproject.org/maven2-snapshots</url>
-        </repository>
+        </snapshotRepository>
 	<site>
             <id>local site</id>
             <url>scp://source.sakaiproject.org//var/www/html/release/entityboker/${project.version}</url>
