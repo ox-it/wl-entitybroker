@@ -1,22 +1,14 @@
 <classpath>
-  <classpathentry kind="src" path="src/java" including="**/*.java"/>
+  <classpathentry kind="src" path="src/java"/>
   <classpathentry kind="output" path="target/classes"/>
-  <classpathentry kind="var" path="M2_REPO/javax/servlet/servlet-api/2.4/servlet-api-2.4.jar" sourcepath="M2_REPO/javax/servlet/servlet-api/2.4/servlet-api-2.4-sources.jar"/>
+  <classpathentry kind="var" path="M2_REPO/javax/servlet/servlet-api/2.4/servlet-api-2.4.jar"/>
   <classpathentry kind="var" path="M2_REPO/commons-codec/commons-codec/1.2/commons-codec-1.2.jar"/>
   <classpathentry kind="var" path="M2_REPO/commons-httpclient/commons-httpclient/3.1/commons-httpclient-3.1.jar"/>
-  <classpathentry kind="var" path="M2_REPO/commons-logging/commons-logging/1.0.4/commons-logging-1.0.4.jar" sourcepath="M2_REPO/commons-logging/commons-logging/1.0.4/commons-logging-1.0.4-sources.jar">
-    <attributes>
-      <attribute value="jar:file:/home/dhorwitz/.m2/repository/commons-logging/commons-logging/1.0.4/commons-logging-1.0.4-javadoc.jar!/" name="javadoc_location"/>
-    </attributes>
-  </classpathentry>
+  <classpathentry kind="var" path="M2_REPO/commons-logging/commons-logging/1.0.4/commons-logging-1.0.4.jar"/>
   <classpathentry kind="src" path="/entitybroker-api"/>
   <classpathentry kind="src" path="/entitybroker-utils"/>
-  <classpathentry kind="var" path="M2_REPO/junit/junit/3.8.1/junit-3.8.1.jar" sourcepath="M2_REPO/junit/junit/3.8.1/junit-3.8.1-sources.jar"/>
-  <classpathentry kind="var" path="M2_REPO/org/azeckoski/reflectutils/0.9.10/reflectutils-0.9.10.jar" sourcepath="M2_REPO/org/azeckoski/reflectutils/0.9.10/reflectutils-0.9.10-sources.jar">
-    <attributes>
-      <attribute value="jar:file:/home/dhorwitz/.m2/repository/org/azeckoski/reflectutils/0.9.10/reflectutils-0.9.10-javadoc.jar!/" name="javadoc_location"/>
-    </attributes>
-  </classpathentry>
+  <classpathentry kind="var" path="M2_REPO/junit/junit/3.8.1/junit-3.8.1.jar"/>
+  <classpathentry kind="var" path="M2_REPO/org/azeckoski/reflectutils/0.9.11/reflectutils-0.9.11.jar"/>
   <classpathentry kind="var" path="M2_REPO/org/springframework/spring-mock/2.0.6/spring-mock-2.0.6.jar"/>
   <classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 </classpath>
