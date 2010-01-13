@@ -42,6 +42,12 @@
             <groupId>commons-logging</groupId>
             <artifactId>commons-logging</artifactId>
         </dependency>
+        <!-- OAuth dependency -->
+        <dependency>
+          <groupId>uk.ac.ox.oucs</groupId>
+          <artifactId>oauth-filter</artifactId>
+          <version>1.0-SNAPSHOT</version>
+        </dependency>
 
         <!-- Sakai K1 dependencies -->
 <!-- -->
