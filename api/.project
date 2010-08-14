@@ -7,7 +7,7 @@
         The Entity Broker integrates seamlessly with the existing Entity system in Sakai
         (Entity Producers and Entities) and entities created using entity providers are
         accessible in Sakai as if they were created using the legacy system. Send feedback
-        or comments to Aaron Zeckoski (azeckoski@gmail.com, aaronz@vt.edu)</comment>
+        or comments to Aaron Zeckoski (azeckoski@gmail.com, aaronz@vt.edu). NO_M2ECLIPSE_SUPPORT: Project files created with the maven-eclipse-plugin are not supported in M2Eclipse.</comment>
   <projects/>
   <buildSpec>
     <buildCommand>
