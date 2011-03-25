@@ -787,4 +787,27 @@ public class EntitySite implements Site {
         throw new UnsupportedOperationException();
     }
 
+	public Date getSoftlyDeletedDate() {
+		if (site != null) {
+			return site.getSoftlyDeletedDate();
+		}
+		throw new UnsupportedOperationException();
+	}
+
+	public boolean isSoftlyDeleted() {
+		if (site != null) {
+			return site.isSoftlyDeleted();
+		}
+		throw new UnsupportedOperationException();
+	}
+
+	public void setSoftlyDeleted(boolean arg0) {
+		if (site != null) {
+			site.setSoftlyDeleted(arg0);
+		}
+		throw new UnsupportedOperationException();
+	}
+    
+    
+
 }
