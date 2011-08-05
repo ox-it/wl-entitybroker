@@ -11,7 +11,7 @@
     <name>Sakai Entity Broker</name>
     <groupId>org.sakaiproject</groupId>
     <artifactId>entitybroker</artifactId>
-    <version>1.4.2</version>
+    <version>1.4.3-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <organization>
@@ -251,9 +251,9 @@
 
     <!-- define source code repository location -->
     <scm>
-        <connection>scm:svn:https://source.sakaiproject.org/svn/entitybroker/tags/entitybroker-1.4.2</connection>
-        <developerConnection>scm:svn:https://source.sakaiproject.org/svn/entitybroker/tags/entitybroker-1.4.2</developerConnection>
-        <url>https://source.sakaiproject.org/viewsvn/entitybroker/tags/entitybroker-1.4.2</url>
+        <connection>scm:svn:https://source.sakaiproject.org/svn/entitybroker/branches/entitybroker-1.4.x</connection>
+        <developerConnection>scm:svn:https://source.sakaiproject.org/svn/entitybroker/branches/entitybroker-1.4.x</developerConnection>
+        <url>https://source.sakaiproject.org/viewsvn/entitybroker/branches/entitybroker-1.4.x</url>
     </scm>
 
     <dependencyManagement>
