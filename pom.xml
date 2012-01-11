@@ -211,21 +211,13 @@
 
     <distributionManagement>
         <repository>
-            <id>sakai-maven2-scp</id>
-            <name>Sakaiproject Maven 2 repository</name>
-            <url>scp://source.sakaiproject.org/var/www/html/maven2</url>
+            <id>maven-repo.oucs</id>
+            <url>http://maven-repo.oucs.ox.ac.uk/content/repositories/releases</url>
         </repository>
         <snapshotRepository>
-            <id>sakai-maven-snapshots-scp</id>
-            <name>Sakaiproject Maven 2 snapshot repository</name>
-            <uniqueVersion>false</uniqueVersion>
-            <url>scp://source.sakaiproject.org/var/www/html/maven2-snapshots</url>
+            <id>maven-repo.oucs</id>
+            <url>http://maven-repo.oucs.ox.ac.uk/content/repositories/snapshots</url>
         </snapshotRepository>
-        <site>
-            <id>sakai-site</id>
-            <name>Sakai release Site</name>
-            <url>${url.localsite}</url>
-        </site>
     </distributionManagement>
 
     <issueManagement>
@@ -269,11 +261,11 @@
     </licenses>
 
     <!-- define source code repository location -->
-    <scm>
-        <connection>scm:svn:https://source.sakaiproject.org/svn/entitybroker/branches/entitybroker-1.4.x</connection>
-        <developerConnection>scm:svn:https://source.sakaiproject.org/svn/entitybroker/branches/entitybroker-1.4.x</developerConnection>
-        <url>https://source.sakaiproject.org/viewsvn/entitybroker/branches/entitybroker-1.4.x</url>
-    </scm>
+  <scm>
+    <connection>scm:git:git://git-repo.oucs.ox.ac.uk/git/repos/local-version/entitybroker</connection>
+    <developerConnection>scm:git:ssh://git-repo.oucs.ox.ac.uk/~git/repos/local-version/entitybroker</developerConnection>
+    <url>http://git-repo.oucs.ox.ac.uk/cgi-bin/gitweb.cgi?p=repos/local-version/entitybroker</url>
+  </scm>
 
     <dependencyManagement>
         <dependencies>
