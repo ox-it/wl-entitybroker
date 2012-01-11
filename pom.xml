@@ -11,7 +11,7 @@
     <name>Sakai Entity Broker</name>
     <groupId>org.sakaiproject</groupId>
     <artifactId>entitybroker</artifactId>
-    <version>1.4.3-SNAPSHOT</version>
+    <version>1.4.3ox1-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <organization>
