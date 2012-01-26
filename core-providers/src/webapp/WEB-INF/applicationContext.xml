@@ -49,4 +49,13 @@
             class="org.sakaiproject.entitybroker.providers.ToolEntityProvider">
         <property name="toolManager" ref="org.sakaiproject.tool.api.ToolManager" />
     </bean>
+
+    <bean parent="org.sakaiproject.entitybroker.entityprovider.AbstractEntityProvider"
+            class="org.sakaiproject.entitybroker.providers.ContentHostingProvider">
+        <property name="contentHostingService" 
+        	ref="org.sakaiproject.content.api.ContentHostingService" />
+        <property name="entityManager"
+			ref="org.sakaiproject.entity.api.EntityManager" />
+    </bean>
+    
 </beans>
