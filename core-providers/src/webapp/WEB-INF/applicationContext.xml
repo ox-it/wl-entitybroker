@@ -40,4 +40,11 @@
         <property name="emailService" ref="org.sakaiproject.email.api.EmailService" />
     </bean>
     
+    <bean parent="org.sakaiproject.entitybroker.entityprovider.AbstractEntityProvider"
+            class="org.sakaiproject.entitybroker.providers.ContentHostingProvider">
+        <property name="contentHostingService" ref="org.sakaiproject.content.api.ContentHostingService" />
+        <property name="userDirectoryService" ref="org.sakaiproject.user.api.UserDirectoryService" />
+        <property name="securityService" ref="org.sakaiproject.authz.api.SecurityService" />
+    </bean>
+    
 </beans>
