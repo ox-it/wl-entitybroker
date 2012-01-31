@@ -267,6 +267,12 @@ public class ContentHostingProvider extends AbstractEntityProvider
 		
 		// This is all more complicated because entitybroker isn't very flexible and announcements can only be loaded once you've got the
 		// channel in which they reside first.
+    	
+    	String userId = developerHelperService.getCurrentUserId();
+        if (userId == null) {
+            throw new SecurityException(
+            "This action is not accessible to anon and there is no current user.");
+        }
 		
     	Map<String, Object> parameters = getQueryMap((String)params.get("queryString"));
     	Time timeStamp = getTime((String)parameters.get(PARAMETER_TIMESTAMP));
@@ -295,18 +301,15 @@ public class ContentHostingProvider extends AbstractEntityProvider
 		
 		try {
 			collection = contentHostingService.getCollection(groupUrl);
-		} 
-		catch (IdUnusedException e) {
-			log.error("IdUnusedException in Resource Entity Provider");
-			log.error(e.getStackTrace());
-		} 
-		catch (TypeException e) {
-			log.error("TypeException in Resource Entity Provider");
-			log.error(e.getStackTrace());
-		} 
-		catch (PermissionException e) {
-			log.error("PermissionException in Resource Entity Provider");
-			log.error(e.getStackTrace());
+			
+		} catch (IdUnusedException e) {
+			throw new IllegalArgumentException("IdUnusedException in Resource Entity Provider");
+			
+		} catch (TypeException e) {
+			throw new IllegalArgumentException("TypeException in Resource Entity Provider");
+			
+		} catch (PermissionException e) {
+			throw new SecurityException("PermissionException in Resource Entity Provider");
 		}
 		
 		List<ResourceDetails> resourceDetails = new ArrayList<ResourceDetails>();
