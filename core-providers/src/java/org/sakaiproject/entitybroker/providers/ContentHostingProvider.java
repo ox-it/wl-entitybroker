@@ -54,16 +54,6 @@ public class ContentHostingProvider extends AbstractEntityProvider
 	{	this.contentHostingService = contentHostingService;
 	}
 	
-	private UserDirectoryService userDirectoryService;
-	public void setUserDirectoryService(UserDirectoryService userDirectoryService) {
-		this.userDirectoryService = userDirectoryService;
-	}
-	
-	private SecurityService securityService;
-	public void setSecurityService(SecurityService securityService) {
-		this.securityService = securityService;
-	}
-	
 	public static String PREFIX = "content";
     public String getEntityPrefix() {
         return PREFIX;
@@ -289,18 +279,21 @@ public class ContentHostingProvider extends AbstractEntityProvider
     	
 		String[] segments = view.getPathSegments();
 		
-		StringBuffer entityUrl = new StringBuffer();
-		for (int i=3; i<segments.length; i++) {
-			entityUrl.append(segments[i]+"/");
+		// Frig to ensure user urls contain the full userId
+		if ("user".equals(segments[2])) {
+			segments[3] = userId;
 		}
-		entityUrl.deleteCharAt(entityUrl.length()-1);
 		
-		String groupUrl = contentHostingService.getSiteCollection(entityUrl.toString());
+		StringBuffer entityUrl = new StringBuffer();
+		for (int i=2; i<segments.length; i++) {
+			entityUrl.append("/"+segments[i]);
+		}
+		entityUrl.append("/");
 		
 		ContentCollection collection= null;
 		
 		try {
-			collection = contentHostingService.getCollection(groupUrl);
+			collection = contentHostingService.getCollection(entityUrl.toString());
 			
 		} catch (IdUnusedException e) {
 			throw new IllegalArgumentException("IdUnusedException in Resource Entity Provider");
