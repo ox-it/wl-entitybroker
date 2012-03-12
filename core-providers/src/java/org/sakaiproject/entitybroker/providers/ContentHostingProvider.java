@@ -160,8 +160,8 @@ public class ContentHostingProvider extends AbstractEntityProvider
 					entity.getProperties().getTimeProperty(ResourceProperties.PROP_MODIFIED_DATE));
 			tempRd.setModifiedBy(
 					entity.getProperties().getProperty(ResourceProperties.PROP_MODIFIED_BY));
-			tempRd.setType(
-					entity.getProperties().getProperty(ResourceProperties.PROP_RESOURCE_TYPE));
+			//tempRd.setType(
+			//		entity.getProperties().getProperty(ResourceProperties.PROP_RESOURCE_TYPE));
 			tempRd.setMimeType(
 					entity.getProperties().getProperty(ResourceProperties.PROP_CONTENT_TYPE));
 			tempRd.setPriority(
@@ -169,6 +169,7 @@ public class ContentHostingProvider extends AbstractEntityProvider
 			tempRd.setSize(
 					entity.getProperties().getProperty(ResourceProperties.PROP_CONTENT_LENGTH));
 			tempRd.setReference(entity.getReference());
+			tempRd.setType(entity.getResourceType());
 			tempRd.setUrl(entity.getUrl());
 			tempRd.setRelease(entity.getReleaseDate());
 			tempRd.setRetract(entity.getRetractDate());
