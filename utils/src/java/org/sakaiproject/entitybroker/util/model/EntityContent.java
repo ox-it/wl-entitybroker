@@ -1,4 +1,4 @@
-package org.sakaiproject.entitybroker.providers.model;
+package org.sakaiproject.entitybroker.util.model;
 
 import java.util.ArrayList;
 import java.util.Collection;
