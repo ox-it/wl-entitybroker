@@ -36,6 +36,7 @@ import org.sakaiproject.entitybroker.entityprovider.capabilities.RequestAware;
 import org.sakaiproject.entitybroker.entityprovider.extension.Formats;
 import org.sakaiproject.entitybroker.entityprovider.extension.RequestGetter;
 import org.sakaiproject.entitybroker.entityprovider.search.Search;
+import org.sakaiproject.entitybroker.providers.model.EntityContent;
 import org.sakaiproject.entitybroker.util.AbstractEntityProvider;
 import org.sakaiproject.exception.IdUnusedException;
 import org.sakaiproject.exception.PermissionException;
@@ -116,10 +117,10 @@ public class ContentHostingProvider extends AbstractEntityProvider
 	 * @param timeStamp
 	 * @return
 	 */
-	private ResourceDetails getResourceDetails(	
+	private EntityContent getResourceDetails(	
 			ContentEntity entity, int requestedDepth, Time timeStamp) {
 		
-		ResourceDetails tempRd =new ResourceDetails();
+		EntityContent tempRd =new EntityContent();
 		
 		try {
 			/* 
@@ -189,7 +190,7 @@ public class ContentHostingProvider extends AbstractEntityProvider
 			
 				for (Iterator<ContentCollection> i = contents.iterator(); i.hasNext();) {
 					ContentEntity content = i.next();
-					ResourceDetails resource = getResourceDetails(content, requestedDepth, timeStamp);
+					EntityContent resource = getResourceDetails(content, requestedDepth, timeStamp);
 				
 					if (resource.after(timeStamp)) {
 						tempRd.addResourceChild(resource);
@@ -253,7 +254,7 @@ public class ContentHostingProvider extends AbstractEntityProvider
 	}
     
     @EntityCustomAction(action="resources", viewKey=EntityView.VIEW_LIST)
-	public List<ResourceDetails> getResources(EntityView view, Map<String, Object> params) 
+	public List<EntityContent> getResources(EntityView view, Map<String, Object> params) 
 			throws EntityPermissionException {
 		
 		// This is all more complicated because entitybroker isn't very flexible and announcements can only be loaded once you've got the
@@ -306,7 +307,7 @@ public class ContentHostingProvider extends AbstractEntityProvider
 			throw new SecurityException("PermissionException in Resource Entity Provider");
 		}
 		
-		List<ResourceDetails> resourceDetails = new ArrayList<ResourceDetails>();
+		List<EntityContent> resourceDetails = new ArrayList<EntityContent>();
 		if (collection!=null) {
 			resourceDetails.add(getResourceDetails(collection, requestedDepth, timeStamp));
 		}
@@ -359,148 +360,4 @@ public class ContentHostingProvider extends AbstractEntityProvider
 		// TODO Auto-generated method stub
         return false;
 	}
-
-	public class ResourceDetails {
-		
-		private String name;
-		private String resourceId;
-		private String reference;
-		private String type;
-		private String mimeType;
-		private String description;
-		private String creator;
-		private String modifiedBy;
-		private String size;
-		private String url;
-		private String priority;
-		
-		private Time created;
-		private Time modified;
-		private Time release;
-		private Time retract;
-		
-		private boolean hidden;
-		
-		private Collection<ResourceDetails> resourceChildren = new ArrayList<ResourceDetails>();
-		
-		private Map<String, Object> properties = new HashMap<String, Object>();
-		
-		public void setName(String name) {
-			this.name = name;
-		}
-		public String getName() {
-			return name;
-		}
-		public void setResourceId(String id) {
-			this.resourceId = id;
-		}
-		public String getResourceId() {
-			return resourceId;
-		}
-		public String getType() {
-			return type;
-		}
-		public void setType(String type) {
-			this.type = type;
-		}
-		public String getMimeType() {
-			return mimeType;
-		}
-		public void setMimeType(String mimeType) {
-			this.mimeType = mimeType;
-		}
-		public String getDescription() {
-			return description;
-		}
-		public void setDescription(String description) {
-			this.description = description;
-		}
-		public String getSize() {
-			return size;
-		}
-		public void setSize(String size) {
-			this.size = size;
-		}
-		public String getCreator() {
-			return creator;
-		}
-		public void setCreator(String creator) {
-			this.creator = creator;
-		}
-		public String getModifiedBy() {
-			return modifiedBy;
-		}
-		public void setModifiedBy(String modifiedBy) {
-			this.modifiedBy = modifiedBy;
-		}
-		public Long getCreated() {
-			return created.getTime();
-		}
-		public void setCreated(Time created) {
-			this.created = created;
-		}
-		public Long getModified() {
-			return modified.getTime();
-		}
-		public void setModified(Time modified) {
-			this.modified = modified;
-		}
-		public String getUrl() {
-			return url;
-		}
-		public void setUrl(String url) {
-			this.url = url;
-		}
-		public String getReference() {
-			return reference;
-		}
-		public void setReference(String reference) {
-			this.reference = reference;
-		}
-		public String getPriority() {
-			return priority;
-		}
-		public void setPriority(String priority) {
-			this.priority = priority;
-		}
-		public Long getRelease() {
-			return release.getTime();
-		}
-		public void setRelease(Time release) {
-			this.release = release;
-		}
-		public Long getRetract() {
-			return retract.getTime();
-		}
-		public void setRetract(Time retract) {
-			this.retract = retract;
-		}
-		public boolean getHidden() {
-			return hidden;
-		}
-		public void setHidden(boolean hidden) {
-			this.hidden = hidden;
-		}
-		public void addResourceChild(ResourceDetails child) {
-			this.resourceChildren.add(child);
-		}
-		public Collection<ResourceDetails> getResourceChildren() {
-			return resourceChildren;
-		}
-		
-		public Map<String, Object> getProperties() {
-			return properties;
-		}
-		public void setProperty(String key, Object value) {
-			properties.put(key, value);
-		}
-		
-		public boolean after(Time timeStamp) {
-			if (modified.after(timeStamp)) {
-				return true;
-			}
-			return false;
-		}
-	}
-
 }
