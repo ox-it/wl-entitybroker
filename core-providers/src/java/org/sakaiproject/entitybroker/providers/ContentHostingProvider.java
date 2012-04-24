@@ -37,6 +37,7 @@ import org.sakaiproject.entitybroker.entityprovider.extension.Formats;
 import org.sakaiproject.entitybroker.entityprovider.extension.RequestGetter;
 import org.sakaiproject.entitybroker.entityprovider.search.Search;
 import org.sakaiproject.entitybroker.util.AbstractEntityProvider;
+import org.sakaiproject.entitybroker.util.EntityDataUtils;
 import org.sakaiproject.entitybroker.util.model.EntityContent;
 import org.sakaiproject.exception.IdUnusedException;
 import org.sakaiproject.exception.PermissionException;
@@ -65,10 +66,9 @@ public class ContentHostingProvider extends AbstractEntityProvider
     
     private int currentDepth = 0;
     
+    /*
     private static Set<String> directPropertyNames = new HashSet<String>()
-    {/**
-		 * 
-		 */
+    {
 		private static final long serialVersionUID = 1L;
 
 	{ 	add(ResourceProperties.PROP_DISPLAY_NAME);
@@ -84,6 +84,7 @@ public class ContentHostingProvider extends AbstractEntityProvider
     	add(ResourceProperties.PROP_HAS_CUSTOM_SORT);
     	add(ResourceProperties.PROP_IS_COLLECTION);
     }};
+    */
 
 	/**
 	 * 
@@ -120,91 +121,29 @@ public class ContentHostingProvider extends AbstractEntityProvider
 	private EntityContent getResourceDetails(	
 			ContentEntity entity, int requestedDepth, Time timeStamp) {
 		
-		EntityContent tempRd =new EntityContent();
+		EntityContent tempRd = EntityDataUtils.getResourceDetails(entity);
 		
-		try {
-			/* 
-			 * Task 2 visibility info
-		     * 	copyright (how will this work when a notice pops up?)
-		     * 	get availability dates
-		     * 	is it hidden?
-		     */
+		if ((requestedDepth > currentDepth) && entity.isCollection()) {
+				
+			ContentCollection collection = (ContentCollection)entity;
+			List<ContentCollection> contents = collection.getMemberResources();
 			
-			/* 
-			 * Task 3 get new metadata
-		     *	date specifier
-    		 *	course component
-    		 *	course tutor
-		     */
-			ResourceProperties resourceProperties = entity.getProperties();
-			Iterator propertyNames = resourceProperties.getPropertyNames();
-			while (propertyNames.hasNext()) {
-				String key = (String)propertyNames.next();
-				if (!directPropertyNames.contains(key)) {
-					String value = resourceProperties.getProperty(key);
-					if (null != value) {
-						tempRd.setProperty(key, value);
-					}
-				}
+			currentDepth++;
+				
+			Comparator comparator = getComparator(entity);
+			if (null != comparator) {
+				Collections.sort(contents, comparator);
 			}
 			
-			tempRd.setResourceId( entity.getId());
-			tempRd.setName(
-					entity.getProperties().getPropertyFormatted(ResourceProperties.PROP_DISPLAY_NAME));
-			tempRd.setDescription(
-					entity.getProperties().getProperty(ResourceProperties.PROP_DESCRIPTION));
-			tempRd.setCreator(
-					entity.getProperties().getProperty(ResourceProperties.PROP_CREATOR));
-			tempRd.setCreated(
-					entity.getProperties().getTimeProperty(ResourceProperties.PROP_CREATION_DATE));
-			tempRd.setModified(
-					entity.getProperties().getTimeProperty(ResourceProperties.PROP_MODIFIED_DATE));
-			tempRd.setModifiedBy(
-					entity.getProperties().getProperty(ResourceProperties.PROP_MODIFIED_BY));
-			//tempRd.setType(
-			//		entity.getProperties().getProperty(ResourceProperties.PROP_RESOURCE_TYPE));
-			tempRd.setMimeType(
-					entity.getProperties().getProperty(ResourceProperties.PROP_CONTENT_TYPE));
-			tempRd.setPriority(
-					entity.getProperties().getProperty(ResourceProperties.PROP_CONTENT_PRIORITY));
-			tempRd.setSize(
-					entity.getProperties().getProperty(ResourceProperties.PROP_CONTENT_LENGTH));
-			tempRd.setReference(entity.getReference());
-			tempRd.setType(entity.getResourceType());
-			tempRd.setUrl(entity.getUrl());
-			tempRd.setRelease(entity.getReleaseDate());
-			tempRd.setRetract(entity.getRetractDate());
-			tempRd.setHidden(entity.isHidden());
-			
-			if ((requestedDepth > currentDepth) && entity.isCollection()) {
+			for (Iterator<ContentCollection> i = contents.iterator(); i.hasNext();) {
+				ContentEntity content = i.next();
+				EntityContent resource = getResourceDetails(content, requestedDepth, timeStamp);
 				
-				ContentCollection collection = (ContentCollection)entity;
-				List<ContentCollection> contents = collection.getMemberResources();
-			
-				currentDepth++;
-				
-				Comparator comparator = getComparator(entity);
-				if (null != comparator) {
-					Collections.sort(contents, comparator);
+				if (resource.after(timeStamp)) {
+					tempRd.addResourceChild(resource);
 				}
-			
-				for (Iterator<ContentCollection> i = contents.iterator(); i.hasNext();) {
-					ContentEntity content = i.next();
-					EntityContent resource = getResourceDetails(content, requestedDepth, timeStamp);
-				
-					if (resource.after(timeStamp)) {
-						tempRd.addResourceChild(resource);
-					}
-				}
-				currentDepth--;
 			}
-			
-		} catch (EntityPropertyNotDefinedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (EntityPropertyTypeException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			currentDepth--;
 		}
 		
 		return tempRd;

@@ -23,6 +23,8 @@ package org.sakaiproject.entitybroker.util;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -30,6 +32,10 @@ import java.util.Map.Entry;
 
 import org.azeckoski.reflectutils.ReflectUtils;
 import org.azeckoski.reflectutils.exceptions.FieldnameNotFoundException;
+import org.sakaiproject.content.api.ContentEntity;
+import org.sakaiproject.entity.api.EntityPropertyNotDefinedException;
+import org.sakaiproject.entity.api.EntityPropertyTypeException;
+import org.sakaiproject.entity.api.ResourceProperties;
 import org.sakaiproject.entitybroker.EntityReference;
 import org.sakaiproject.entitybroker.entityprovider.annotations.EntityId;
 import org.sakaiproject.entitybroker.entityprovider.capabilities.CollectionResolvable;
@@ -37,6 +43,7 @@ import org.sakaiproject.entitybroker.entityprovider.extension.ActionReturn;
 import org.sakaiproject.entitybroker.entityprovider.extension.EntityData;
 import org.sakaiproject.entitybroker.entityprovider.search.Restriction;
 import org.sakaiproject.entitybroker.entityprovider.search.Search;
+import org.sakaiproject.entitybroker.util.model.EntityContent;
 
 
 /**
@@ -45,6 +52,26 @@ import org.sakaiproject.entitybroker.entityprovider.search.Search;
  * @author Aaron Zeckoski (azeckoski @ gmail.com)
  */
 public class EntityDataUtils {
+	
+	private static Set<String> directPropertyNames = new HashSet<String>()
+		    {/**
+				 * 
+				 */
+				private static final long serialVersionUID = 1L;
+
+			{ 	add(ResourceProperties.PROP_DISPLAY_NAME);
+		    	add(ResourceProperties.PROP_DESCRIPTION);
+		    	add(ResourceProperties.PROP_CREATOR);
+		    	add(ResourceProperties.PROP_MODIFIED_BY);
+		    	add(ResourceProperties.PROP_CREATION_DATE);
+		    	add(ResourceProperties.PROP_MODIFIED_DATE);
+		    	add(ResourceProperties.PROP_RESOURCE_TYPE);
+		    	add(ResourceProperties.PROP_CONTENT_TYPE);
+		    	add(ResourceProperties.PROP_CONTENT_PRIORITY);
+		    	add(ResourceProperties.PROP_CONTENT_LENGTH);
+		    	add(ResourceProperties.PROP_HAS_CUSTOM_SORT);
+		    	add(ResourceProperties.PROP_IS_COLLECTION);
+		    }};
 
     /**
      * Convert a list of objects to entity data objects (DOES NOT populate them),
@@ -355,4 +382,64 @@ public class EntityDataUtils {
         return props;
     }
 
+	/**
+	 * 
+	 * @param entity
+	 * @return
+	 */
+	public static EntityContent getResourceDetails(ContentEntity entity) {
+		
+		EntityContent tempRd =new EntityContent();
+		
+		try {
+			ResourceProperties resourceProperties = entity.getProperties();
+			Iterator propertyNames = resourceProperties.getPropertyNames();
+			while (propertyNames.hasNext()) {
+				String key = (String)propertyNames.next();
+				if (!directPropertyNames.contains(key)) {
+					String value = resourceProperties.getProperty(key);
+					if (null != value) {
+						tempRd.setProperty(key, value);
+					}
+				}
+			}
+			
+			tempRd.setResourceId( entity.getId());
+			tempRd.setName(
+					entity.getProperties().getPropertyFormatted(ResourceProperties.PROP_DISPLAY_NAME));
+			tempRd.setDescription(
+					entity.getProperties().getProperty(ResourceProperties.PROP_DESCRIPTION));
+			tempRd.setCreator(
+					entity.getProperties().getProperty(ResourceProperties.PROP_CREATOR));
+			tempRd.setCreated(
+					entity.getProperties().getTimeProperty(ResourceProperties.PROP_CREATION_DATE));
+			tempRd.setModified(
+					entity.getProperties().getTimeProperty(ResourceProperties.PROP_MODIFIED_DATE));
+			tempRd.setModifiedBy(
+					entity.getProperties().getProperty(ResourceProperties.PROP_MODIFIED_BY));
+			//tempRd.setType(
+			//		entity.getProperties().getProperty(ResourceProperties.PROP_RESOURCE_TYPE));
+			tempRd.setMimeType(
+					entity.getProperties().getProperty(ResourceProperties.PROP_CONTENT_TYPE));
+			tempRd.setPriority(
+					entity.getProperties().getProperty(ResourceProperties.PROP_CONTENT_PRIORITY));
+			tempRd.setSize(
+					entity.getProperties().getProperty(ResourceProperties.PROP_CONTENT_LENGTH));
+			tempRd.setReference(entity.getReference());
+			tempRd.setType(entity.getResourceType());
+			tempRd.setUrl(entity.getUrl());
+			tempRd.setRelease(entity.getReleaseDate());
+			tempRd.setRetract(entity.getRetractDate());
+			tempRd.setHidden(entity.isHidden());
+			
+		} catch (EntityPropertyNotDefinedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (EntityPropertyTypeException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return tempRd;
+	}
 }
