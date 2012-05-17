@@ -22,9 +22,11 @@ import org.sakaiproject.authz.api.SecurityService;
 import org.sakaiproject.content.api.ContentCollection;
 import org.sakaiproject.content.api.ContentEntity;
 import org.sakaiproject.content.api.ContentHostingService;
+import org.sakaiproject.entity.api.EntityManager;
 import org.sakaiproject.entity.api.EntityPermissionException;
 import org.sakaiproject.entity.api.EntityPropertyNotDefinedException;
 import org.sakaiproject.entity.api.EntityPropertyTypeException;
+import org.sakaiproject.entity.api.Reference;
 import org.sakaiproject.entity.api.ResourceProperties;
 import org.sakaiproject.entitybroker.EntityReference;
 import org.sakaiproject.entitybroker.EntityView;
@@ -54,6 +56,11 @@ public class ContentHostingProvider extends AbstractEntityProvider
 	private ContentHostingService contentHostingService;
 	public void setContentHostingService(ContentHostingService contentHostingService)
 	{	this.contentHostingService = contentHostingService;
+	}
+	
+	private EntityManager entityManager;
+	public void setEntityManager(EntityManager entityManager)
+	{	this.entityManager = entityManager;
 	}
 	
 	public static String PREFIX = "content";
@@ -220,21 +227,18 @@ public class ContentHostingProvider extends AbstractEntityProvider
     	
 		String[] segments = view.getPathSegments();
 		
-		// Frig to ensure user urls contain the full userId
-		if ("user".equals(segments[2])) {
-			segments[3] = userId;
-		}
-		
-		StringBuffer entityUrl = new StringBuffer();
+		StringBuffer resourceId = new StringBuffer();
 		for (int i=2; i<segments.length; i++) {
-			entityUrl.append("/"+segments[i]);
+			resourceId.append("/"+segments[i]);
 		}
-		entityUrl.append("/");
+		resourceId.append("/");
+	
+		Reference reference = entityManager.newReference(
+				ContentHostingService.REFERENCE_ROOT+resourceId.toString());
 		
 		ContentCollection collection= null;
-		
 		try {
-			collection = contentHostingService.getCollection(entityUrl.toString());
+			collection = contentHostingService.getCollection(reference.getId());
 			
 		} catch (IdUnusedException e) {
 			throw new IllegalArgumentException("IdUnusedException in Resource Entity Provider");
