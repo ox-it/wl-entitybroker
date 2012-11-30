@@ -551,7 +551,7 @@ implements EntityProvider, RESTful, AutoRegisterEntityProvider, RequestIntercept
 					}
 				}
 				
-				if (isSiteCollection(entityId)) {
+				if (contentService.isCollection(entityId)) {
 					ContentCollectionEdit collection = editContentCollection(entityId);
 					ResourcePropertiesEdit props = collection.getPropertiesEdit();
 				
@@ -598,8 +598,8 @@ implements EntityProvider, RESTful, AutoRegisterEntityProvider, RequestIntercept
 				}
 				
 				} else if (ResourceToolAction.REVISE_CONTENT.equalsIgnoreCase(actionId)) {
-					if (isSiteCollection(entityId)) {
-						// throw exception?
+					if (contentService.isCollection(entityId)) {
+						throw new IllegalArgumentException("Cannot revise content on collections");
 					} else {
 						ContentResourceEdit resource = editContentResource(entityId);
 				
@@ -615,8 +615,8 @@ implements EntityProvider, RESTful, AutoRegisterEntityProvider, RequestIntercept
 					}
 			
 				} else if (ResourceToolAction.REPLACE_CONTENT.equalsIgnoreCase(actionId)) {
-					if (isSiteCollection(entityId)) {
-						// throw exception?
+					if (contentService.isCollection(entityId)) {
+						throw new IllegalArgumentException("Cannot replace content on collections");
 					} else {
 						ContentResourceEdit resource = editContentResource(entityId);
 						
@@ -640,12 +640,12 @@ implements EntityProvider, RESTful, AutoRegisterEntityProvider, RequestIntercept
 					}
 			
 				} else if (ResourceToolAction.REORDER.equalsIgnoreCase(actionId)) {
-					if (isSiteCollection(entityId)) {
+					if (contentService.isCollection(entityId)) {
 						ContentCollectionEdit collection = editContentCollection(entityId);
 						contentService.commitCollection(collection);
 				
 					} else {
-						// throw exception?
+						throw new IllegalArgumentException("Cannot reorder resources");
 					}
 			
 				} else if (ResourceToolAction.PERMISSIONS.equalsIgnoreCase(actionId)) {
@@ -653,16 +653,11 @@ implements EntityProvider, RESTful, AutoRegisterEntityProvider, RequestIntercept
 				}
 		
 		} catch (VirusFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			
+			throw new RuntimeException(e);
 		} catch (OverQuotaException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			
+			throw new RuntimeException(e);
 		} catch (ServerOverloadException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			throw new RuntimeException(e);
 		}
 	}
 	
@@ -1207,22 +1202,6 @@ implements EntityProvider, RESTful, AutoRegisterEntityProvider, RequestIntercept
     }
     
     /**
-     * 
-     * @param entityId
-     * @return
-     */
-	public boolean isSiteCollection(String entityId) {
-		boolean isSiteCollection = false;
-		entityId = decodeEntityId(entityId);
-		if(entityId != null && entityId.startsWith("/") && entityId.endsWith("/"))
-		{
-			int slashCount = entityId.split("/").length;
-			isSiteCollection = (entityId.startsWith("/~") && slashCount == 2) || (slashCount == 3);
-		}
-		return isSiteCollection;
-	}
-
-	/**
 	 * 
 	 * @param entityId
 	 * @return
