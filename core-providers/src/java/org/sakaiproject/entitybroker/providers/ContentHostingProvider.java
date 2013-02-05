@@ -71,8 +71,6 @@ public class ContentHostingProvider extends AbstractEntityProvider
     private static final String PARAMETER_DEPTH = "depth";
     private static final String PARAMETER_TIMESTAMP = "timestamp";
     
-    private int currentDepth = 0;
-    
     /*
     private static Set<String> directPropertyNames = new HashSet<String>()
     {
@@ -126,16 +124,16 @@ public class ContentHostingProvider extends AbstractEntityProvider
 	 * @return
 	 */
 	private EntityContent getResourceDetails(	
-			ContentEntity entity, int requestedDepth, Time timeStamp) {
+			ContentEntity entity, int currentDepth, int requestedDepth, Time timeStamp) {
 		
 		EntityContent tempRd = EntityDataUtils.getResourceDetails(entity);
 		
+		// If it's a collection recurse down into it.
 		if ((requestedDepth > currentDepth) && entity.isCollection()) {
 				
 			ContentCollection collection = (ContentCollection)entity;
 			List<ContentCollection> contents = collection.getMemberResources();
 			
-			currentDepth++;
 				
 			Comparator comparator = getComparator(entity);
 			if (null != comparator) {
@@ -144,7 +142,7 @@ public class ContentHostingProvider extends AbstractEntityProvider
 			
 			for (Iterator<ContentCollection> i = contents.iterator(); i.hasNext();) {
 				ContentEntity content = i.next();
-				EntityContent resource = getResourceDetails(content, requestedDepth, timeStamp);
+				EntityContent resource = getResourceDetails(content, currentDepth+1, requestedDepth, timeStamp);
 				
 				if (resource.after(timeStamp)) {
 					tempRd.addResourceChild(resource);
@@ -216,7 +214,7 @@ public class ContentHostingProvider extends AbstractEntityProvider
     	Time timeStamp = getTime((String)parameters.get(PARAMETER_TIMESTAMP));
     	
     	int requestedDepth = 1;
-    	currentDepth = 0;
+    	int currentDepth = 0;
     	if (parameters.containsKey(PARAMETER_DEPTH)) {
     		if ("all".equals((String)parameters.get(PARAMETER_DEPTH))) {
     			requestedDepth = Integer.MAX_VALUE;
@@ -252,7 +250,7 @@ public class ContentHostingProvider extends AbstractEntityProvider
 		
 		List<EntityContent> resourceDetails = new ArrayList<EntityContent>();
 		if (collection!=null) {
-			resourceDetails.add(getResourceDetails(collection, requestedDepth, timeStamp));
+			resourceDetails.add(getResourceDetails(collection, currentDepth, requestedDepth, timeStamp));
 		}
 		return resourceDetails;
 	}
