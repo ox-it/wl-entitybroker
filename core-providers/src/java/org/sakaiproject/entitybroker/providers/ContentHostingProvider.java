@@ -70,26 +70,6 @@ public class ContentHostingProvider extends AbstractEntityProvider
     
     private static final String PARAMETER_DEPTH = "depth";
     private static final String PARAMETER_TIMESTAMP = "timestamp";
-    
-    /*
-    private static Set<String> directPropertyNames = new HashSet<String>()
-    {
-		private static final long serialVersionUID = 1L;
-
-	{ 	add(ResourceProperties.PROP_DISPLAY_NAME);
-    	add(ResourceProperties.PROP_DESCRIPTION);
-    	add(ResourceProperties.PROP_CREATOR);
-    	add(ResourceProperties.PROP_MODIFIED_BY);
-    	add(ResourceProperties.PROP_CREATION_DATE);
-    	add(ResourceProperties.PROP_MODIFIED_DATE);
-    	add(ResourceProperties.PROP_RESOURCE_TYPE);
-    	add(ResourceProperties.PROP_CONTENT_TYPE);
-    	add(ResourceProperties.PROP_CONTENT_PRIORITY);
-    	add(ResourceProperties.PROP_CONTENT_LENGTH);
-    	add(ResourceProperties.PROP_HAS_CUSTOM_SORT);
-    	add(ResourceProperties.PROP_IS_COLLECTION);
-    }};
-    */
 
 	/**
 	 * 
