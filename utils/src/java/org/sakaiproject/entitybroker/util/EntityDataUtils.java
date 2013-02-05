@@ -22,6 +22,7 @@ package org.sakaiproject.entitybroker.util;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -29,7 +30,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Map.Entry;
-
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.azeckoski.reflectutils.ReflectUtils;
 import org.azeckoski.reflectutils.exceptions.FieldnameNotFoundException;
 import org.sakaiproject.content.api.ContentEntity;
@@ -52,26 +54,27 @@ import org.sakaiproject.entitybroker.util.model.EntityContent;
  * @author Aaron Zeckoski (azeckoski @ gmail.com)
  */
 public class EntityDataUtils {
-	
-	private static Set<String> directPropertyNames = new HashSet<String>()
-		    {/**
-				 * 
-				 */
-				private static final long serialVersionUID = 1L;
 
-			{ 	add(ResourceProperties.PROP_DISPLAY_NAME);
-		    	add(ResourceProperties.PROP_DESCRIPTION);
-		    	add(ResourceProperties.PROP_CREATOR);
-		    	add(ResourceProperties.PROP_MODIFIED_BY);
-		    	add(ResourceProperties.PROP_CREATION_DATE);
-		    	add(ResourceProperties.PROP_MODIFIED_DATE);
-		    	add(ResourceProperties.PROP_RESOURCE_TYPE);
-		    	add(ResourceProperties.PROP_CONTENT_TYPE);
-		    	add(ResourceProperties.PROP_CONTENT_PRIORITY);
-		    	add(ResourceProperties.PROP_CONTENT_LENGTH);
-		    	add(ResourceProperties.PROP_HAS_CUSTOM_SORT);
-		    	add(ResourceProperties.PROP_IS_COLLECTION);
-		    }};
+	private final static Log log = LogFactory.getLog(EntityDataUtils.class);
+
+	// Property names
+	private final static Set<String> directPropertyNames = Collections.unmodifiableSet(new HashSet<String>(){
+		private static final long serialVersionUID = 1L;
+		{
+			add(ResourceProperties.PROP_DISPLAY_NAME);
+			add(ResourceProperties.PROP_DESCRIPTION);
+			add(ResourceProperties.PROP_CREATOR);
+			add(ResourceProperties.PROP_MODIFIED_BY);
+			add(ResourceProperties.PROP_CREATION_DATE);
+			add(ResourceProperties.PROP_MODIFIED_DATE);
+			add(ResourceProperties.PROP_RESOURCE_TYPE);
+			add(ResourceProperties.PROP_CONTENT_TYPE);
+			add(ResourceProperties.PROP_CONTENT_PRIORITY);
+			add(ResourceProperties.PROP_CONTENT_LENGTH);
+			add(ResourceProperties.PROP_HAS_CUSTOM_SORT);
+			add(ResourceProperties.PROP_IS_COLLECTION);
+		}
+	});
 
     /**
      * Convert a list of objects to entity data objects (DOES NOT populate them),
@@ -382,64 +385,63 @@ public class EntityDataUtils {
         return props;
     }
 
+
 	/**
-	 * 
-	 * @param entity
-	 * @return
+	 * Produces a summary of an content entity for display in entitybroker.
+	 * @param entity The entity to display.
+	 * @return An EntityContent matching the supplied entity.
 	 */
 	public static EntityContent getResourceDetails(ContentEntity entity) {
-		
-		EntityContent tempRd =new EntityContent();
-		
-		try {
-			ResourceProperties resourceProperties = entity.getProperties();
-			Iterator propertyNames = resourceProperties.getPropertyNames();
-			while (propertyNames.hasNext()) {
-				String key = (String)propertyNames.next();
-				if (!directPropertyNames.contains(key)) {
-					String value = resourceProperties.getProperty(key);
-					if (null != value) {
-						tempRd.setProperty(key, value);
-					}
+
+		EntityContent tempRd = new EntityContent();
+
+		ResourceProperties properties = entity.getProperties();
+		Iterator propertyNames = properties.getPropertyNames();
+		while (propertyNames.hasNext()) {
+			String key = (String) propertyNames.next();
+			if (!directPropertyNames.contains(key)) {
+				String value = properties.getProperty(key);
+				if (null != value) {
+					tempRd.setProperty(key, value);
 				}
 			}
-			
-			tempRd.setResourceId( entity.getId());
-			tempRd.setName(
-					entity.getProperties().getPropertyFormatted(ResourceProperties.PROP_DISPLAY_NAME));
-			tempRd.setDescription(
-					entity.getProperties().getProperty(ResourceProperties.PROP_DESCRIPTION));
-			tempRd.setCreator(
-					entity.getProperties().getProperty(ResourceProperties.PROP_CREATOR));
-			tempRd.setCreated(
-					entity.getProperties().getTimeProperty(ResourceProperties.PROP_CREATION_DATE));
-			tempRd.setModified(
-					entity.getProperties().getTimeProperty(ResourceProperties.PROP_MODIFIED_DATE));
-			tempRd.setModifiedBy(
-					entity.getProperties().getProperty(ResourceProperties.PROP_MODIFIED_BY));
-			//tempRd.setType(
-			//		entity.getProperties().getProperty(ResourceProperties.PROP_RESOURCE_TYPE));
-			tempRd.setMimeType(
-					entity.getProperties().getProperty(ResourceProperties.PROP_CONTENT_TYPE));
-			tempRd.setPriority(
-					entity.getProperties().getProperty(ResourceProperties.PROP_CONTENT_PRIORITY));
-			tempRd.setSize(
-					entity.getProperties().getProperty(ResourceProperties.PROP_CONTENT_LENGTH));
-			tempRd.setReference(entity.getReference());
-			tempRd.setType(entity.getResourceType());
-			tempRd.setUrl(entity.getUrl());
-			tempRd.setRelease(entity.getReleaseDate());
-			tempRd.setRetract(entity.getRetractDate());
-			tempRd.setHidden(entity.isHidden());
-			
-		} catch (EntityPropertyNotDefinedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (EntityPropertyTypeException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
 		}
-		
+
+		tempRd.setResourceId(entity.getId());
+		tempRd.setName(properties
+				.getPropertyFormatted(ResourceProperties.PROP_DISPLAY_NAME));
+		tempRd.setDescription(properties
+				.getProperty(ResourceProperties.PROP_DESCRIPTION));
+		tempRd.setCreator(properties
+				.getProperty(ResourceProperties.PROP_CREATOR));
+
+		tempRd.setModifiedBy(properties
+				.getProperty(ResourceProperties.PROP_MODIFIED_BY));
+		tempRd.setMimeType(properties
+				.getProperty(ResourceProperties.PROP_CONTENT_TYPE));
+		tempRd.setPriority(properties
+				.getProperty(ResourceProperties.PROP_CONTENT_PRIORITY));
+		tempRd.setSize(properties
+				.getProperty(ResourceProperties.PROP_CONTENT_LENGTH));
+		tempRd.setReference(entity.getReference());
+		tempRd.setType(entity.getResourceType());
+		tempRd.setUrl(entity.getUrl());
+		tempRd.setRelease(entity.getReleaseDate());
+		tempRd.setRetract(entity.getRetractDate());
+		tempRd.setHidden(entity.isHidden());
+		try {
+			tempRd.setCreated(properties
+					.getTimeProperty(ResourceProperties.PROP_CREATION_DATE));
+			tempRd.setModified(properties
+					.getTimeProperty(ResourceProperties.PROP_MODIFIED_DATE));
+
+		} catch (EntityPropertyNotDefinedException e) {
+			log.warn("Failed to get property on " + entity.getId(), e);
+		} catch (EntityPropertyTypeException e) {
+			log.warn("Incorrect property type on " + entity.getId(), e);
+		}
+
 		return tempRd;
 	}
+    
 }
