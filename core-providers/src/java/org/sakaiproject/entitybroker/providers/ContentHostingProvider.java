@@ -118,23 +118,31 @@ public class ContentHostingProvider extends AbstractEntityProvider
 	
 	/**
 	 * 
-	 * @param entity
-	 * @param requestedDepth
-	 * @param timeStamp
-	 * @return
+	 * @param entity The entity to load details of.
+	 * @param currentDepth How many collections we have already processed
+	 * @param requestedDepth The maximum number depth of the tree to scan.
+	 * @param timeStamp All returned details must be newer than this timestamp.
+	 * @return EntityContent containing details of all resources the user can access.
+	 * <code>null</code> is returned if the current user isn't allowed to access the resource.
 	 */
 	private EntityContent getResourceDetails(	
 			ContentEntity entity, int currentDepth, int requestedDepth, Time timeStamp) {
-		
+		boolean allowed = (entity.isCollection()) ?
+				contentHostingService.allowGetCollection(entity.getId()) :
+				contentHostingService.allowGetResource(entity.getId());
+		if (!allowed) {
+			// If the user isn't allowed to see this we return null.
+			return null;
+		}
 		EntityContent tempRd = EntityDataUtils.getResourceDetails(entity);
 		
 		// If it's a collection recurse down into it.
 		if ((requestedDepth > currentDepth) && entity.isCollection()) {
 				
 			ContentCollection collection = (ContentCollection)entity;
+			// This is all members, no permission check has been done yet.
 			List<ContentCollection> contents = collection.getMemberResources();
 			
-				
 			Comparator comparator = getComparator(entity);
 			if (null != comparator) {
 				Collections.sort(contents, comparator);
@@ -143,12 +151,11 @@ public class ContentHostingProvider extends AbstractEntityProvider
 			for (Iterator<ContentCollection> i = contents.iterator(); i.hasNext();) {
 				ContentEntity content = i.next();
 				EntityContent resource = getResourceDetails(content, currentDepth+1, requestedDepth, timeStamp);
-				
-				if (resource.after(timeStamp)) {
+
+				if (resource != null && resource.after(timeStamp)) {
 					tempRd.addResourceChild(resource);
 				}
 			}
-			currentDepth--;
 		}
 		
 		return tempRd;
@@ -234,6 +241,12 @@ public class ContentHostingProvider extends AbstractEntityProvider
 		Reference reference = entityManager.newReference(
 				ContentHostingService.REFERENCE_ROOT+resourceId.toString());
 		
+		// We could have used contentHostingService.getAllEntities(id) bit it doesn't do 
+		// permission checks on any contained resources (documentation wrong).
+		// contentHostingService.getAllResources(String id) does do permission checks
+		// but it doesn't include collections in it's returned list.
+		// Also doing the recursion ourselves means that we don't loads lots of entities
+		// when the depth of recursion is low.
 		ContentCollection collection= null;
 		try {
 			collection = contentHostingService.getCollection(reference.getId());
@@ -250,7 +263,12 @@ public class ContentHostingProvider extends AbstractEntityProvider
 		
 		List<EntityContent> resourceDetails = new ArrayList<EntityContent>();
 		if (collection!=null) {
-			resourceDetails.add(getResourceDetails(collection, currentDepth, requestedDepth, timeStamp));
+			EntityContent resourceDetail = getResourceDetails(collection, currentDepth, requestedDepth, timeStamp);
+			if (resourceDetail != null) {
+				resourceDetails.add(resourceDetail);
+			} else {
+				log.error("Initial permission check passed but subsequent permission check failed on "+ reference.getId());
+			}
 		}
 		return resourceDetails;
 	}
