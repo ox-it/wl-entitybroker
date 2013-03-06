@@ -170,9 +170,21 @@ implements EntityProvider, RESTful, AutoRegisterEntityProvider, RequestIntercept
 	public void after(EntityView view, HttpServletRequest req,
 			HttpServletResponse res) {
 		logger.debug("after ");
-		if(EntityView.VIEW_NEW.equalsIgnoreCase(view.getViewKey())) {
-			logger.debug("after " + res);
-			//res.setStatus(HttpServletResponse.SC_OK);
+		
+		// When updating a resource IE clients use an iframe which doesn't allow
+		// the headers to be retrieved. Putting a message in the body works around
+		// this.
+		String viewKey = view.getViewKey();
+		if(EntityView.VIEW_EDIT.equals(viewKey) || EntityView.VIEW_DELETE.equals(viewKey)) {
+			if (!res.isCommitted()) {
+				try {
+					// By default it's a 204 for no content, but we're now sending something.
+					res.setStatus(200);
+					res.getWriter().append("OK");
+				} catch (IOException e) {
+					logger.warn("Failed to append workaround message.");
+				}
+			}
 		}
 	}
 
