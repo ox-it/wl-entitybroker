@@ -182,7 +182,7 @@ implements EntityProvider, RESTful, AutoRegisterEntityProvider, RequestIntercept
 					res.setStatus(200);
 					res.getWriter().append("OK");
 				} catch (IOException e) {
-					logger.warn("Failed to append workaround message.");
+					logger.warn("Failed to append workaround message.", e);
 				}
 			}
 		}
